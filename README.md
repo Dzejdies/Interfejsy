@@ -1,4 +1,4 @@
-#BUILD
+# BUILD
 
 npm install   - w root folderze
 
