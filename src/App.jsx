@@ -1,27 +1,35 @@
 import './App.css'
 import TeamMember from './components/TeamMember'
 import TeamCanvas from './components/TeamCanvas'
+import ThemeToggle from './themeToggle';
 
 const TEAM = [
   {
     name: 'Brajan Szczepańczyk',
     role: 'Backend',
-    description: 'El Idiot 1.',
+    description: 'Vibe coder 1.',
   },
   {
     name: 'Mateusz Kołodziejczyk',
     role: 'Frontend',
-    description: 'EL Idiot 2.',
+    description: 'Vibe coder 2.',
   },
 ]
 
 export default function App() {
   return (
-    <div className="page">
-      <header className="page-header">
+    <div className="page min-h-screen transition-colors duration-300">
+      <header className="page-header relative">
         <div className="container">
-          <p className="page-header__label">Projektowanie Interfejsów WWW</p>
-          <h1 className="page-header__title">O nas</h1>
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="page-header__label">Projektowanie Interfejsów WWW</p>
+              <h1 className="page-header__title">O nas</h1>
+            </div>
+            <div>
+              <ThemeToggle/>
+            </div>
+          </div>
         </div>
       </header>
 
