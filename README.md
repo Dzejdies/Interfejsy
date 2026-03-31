@@ -6,7 +6,7 @@ npm install -D @tailwindcss/vite
 
 npm run dev   - Uruchomienie Strony
 
-#Serwer
+# Serwer
 
 sudo npm install -g pm2
 
