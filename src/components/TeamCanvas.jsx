@@ -5,7 +5,7 @@ const SECTIONS = [
     id: 'purpose',
     title: 'Cel zespołu',
     icon: '🎯',
-    content: 'Jeszcze nie mamy pomyslu :welp:',
+    content: 'Zbieranie środków na cele charytatywne akcją GG WP',
     wide: false,
   },
   {
