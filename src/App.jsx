@@ -4,6 +4,8 @@ import TeamMember from './components/TeamMember'
 import TeamCanvas from './components/TeamCanvas'
 import ThemeToggle from './themeToggle'
 import AnalysisPage from './pages/AnalysisPage'
+import ProjectPage from './pages/ProjectPage'
+import PlanPage from './pages/PlanPage'
 
 const TEAM = [
   {
@@ -23,6 +25,14 @@ export default function App() {
 
   if (view === 'analysis') {
     return <AnalysisPage onBack={() => setView('home')} />
+  }
+
+  if (view === 'project') {
+    return <ProjectPage onBack={() => setView('home')} />
+  }
+
+  if (view === 'plan') {
+    return <PlanPage onBack={() => setView('home')} />
   }
 
   return (
@@ -51,9 +61,17 @@ export default function App() {
           </div>
         </section>
 
-        <button className="btn-analysis" onClick={() => setView('analysis')}>
-          Analiza UX →
-        </button>
+        <div className="flex gap-3 flex-wrap" style={{ marginTop: '1.5rem', marginBottom: '0.5rem' }}>
+          <button className="btn-analysis" style={{ margin: 0 }} onClick={() => setView('analysis')}>
+            Analiza UX →
+          </button>
+          <button className="btn-analysis" style={{ margin: 0 }} onClick={() => setView('project')}>
+            O projekcie →
+          </button>
+          <button className="btn-analysis" style={{ margin: 0 }} onClick={() => setView('plan')}>
+            Plan realizacji →
+          </button>
+        </div>
 
         <TeamCanvas />
       </main>
