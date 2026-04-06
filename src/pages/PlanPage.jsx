@@ -1,5 +1,6 @@
 import './PlanPage.css'
-import ThemeToggle from '../themeToggle'
+import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
 
 const METHODOLOGY = [
   {
@@ -128,25 +129,12 @@ const PRINCIPLES = [
   },
 ]
 
-export default function PlanPage({ onBack }) {
+export default function PlanPage({ onNavigate }) {
   return (
     <div className="gh-page">
-      <header className="gh-header">
-        <div className="gh-header__inner">
-          <div>
-            <p className="gh-header__label">Projektowanie Interfejsów WWW</p>
-            <h1 className="gh-title" data-text="Plan realizacji">Plan realizacji</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <button className="gh-btn" style={{ marginTop: 0, marginBottom: 0 }} onClick={onBack}>
-              ← Wróć
-            </button>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      <Navbar onNavigate={onNavigate} currentView="plan" />
 
-      <main className="gh-main">
+      <main className="gh-main" style={{ marginTop: '73px' }}>
         {/* Intro */}
         <div className="plan-intro">
           <span className="plan-intro__icon">🗺️</span>
@@ -284,12 +272,7 @@ export default function PlanPage({ onBack }) {
         </div>
       </main>
 
-      <footer className="gh-footer">
-        <div className="gh-footer__inner">
-          <p>Projekt &mdash; {new Date().getFullYear()}</p>
-          <p>Plan realizacji</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

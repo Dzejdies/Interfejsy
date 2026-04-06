@@ -1,0 +1,49 @@
+/* ── Shared Footer ── */
+.app-footer {
+    border-top: 1px solid rgba(124, 58, 237, 0.15);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 1.25rem 2rem;
+    position: relative;
+    z-index: 10;
+}
+
+.app-footer__inner {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.app-footer__brand {
+    font-family: 'Russo One', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--gh-purple-lt);
+}
+
+.app-footer__update {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(100, 116, 139, 0.5);
+}
+
+.app-footer__course {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(100, 116, 139, 0.4);
+}
+
+@media (max-width: 600px) {
+    .app-footer__inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
+    }
+}
