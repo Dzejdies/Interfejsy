@@ -1,4 +1,8 @@
 node_modules
-dist
 .claude
 CLAUDE.md
+
+# Env files — NEVER commit secrets!
+.env
+.env.local
+.env.*.local

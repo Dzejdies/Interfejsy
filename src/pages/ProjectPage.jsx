@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react'
 import './ProjectPage.css'
-import ThemeToggle from '../themeToggle'
+import Navbar from '../components/Navbar'
+import { supabase } from '../lib/supabase'
+import Footer from '../components/Footer'
 
 const GOALS = [
   {
@@ -19,7 +22,7 @@ const GOALS = [
   },
 ]
 
-const STATS = [
+const STATS_FALLBACK = [
   { value: '50+', label: 'Turniejów' },
   { value: '12k+', label: 'Uczestników' },
   { value: '320k zł', label: 'Zebrane środki' },
@@ -82,25 +85,137 @@ const VALUES = [
   },
 ]
 
-export default function ProjectPage({ onBack }) {
+// Regex: wymaga formatu xxx@xxx.xxx (min 1 znak przed @, domena z kropką i min 2 znaki TLD)
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+function RegistrationModal({ onClose }) {
+  const [form, setForm] = useState({ nickname: '', email: '', message: '' })
+  const [emailError, setEmailError] = useState('')
+  const [status, setStatus] = useState('idle') // idle | loading | success | error
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setForm((prev) => ({ ...prev, [name]: value }))
+    // Czyść błąd emaila podczas pisania
+    if (name === 'email') setEmailError('')
+  }
+
+  const handleEmailBlur = () => {
+    if (form.email && !EMAIL_REGEX.test(form.email)) {
+      setEmailError('Podaj prawidłowy adres e-mail (np. jan@domena.pl)')
+    } else {
+      setEmailError('')
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    // Walidacja przed wysłaniem
+    if (!EMAIL_REGEX.test(form.email)) {
+      setEmailError('Podaj prawidłowy adres e-mail (np. jan@domena.pl)')
+      return
+    }
+    if (!supabase) {
+      setStatus('error')
+      return
+    }
+    setStatus('loading')
+    const { error } = await supabase.from('registrations').insert([
+      { nickname: form.nickname, email: form.email, message: form.message },
+    ])
+    if (error) {
+      console.error(error)
+      setStatus('error')
+    } else {
+      setStatus('success')
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal__close" onClick={onClose}>✕</button>
+        <h2 className="modal__title">🎮 Dołącz do GG WP for Good</h2>
+
+        {status === 'success' ? (
+          <div className="modal__success">
+            <span className="modal__success-icon">✅</span>
+            <p>Zarejestrowano! Do zobaczenia na turnieju!</p>
+            <button className="gh-btn" onClick={onClose}>Zamknij</button>
+          </div>
+        ) : (
+          <form className="modal__form" onSubmit={handleSubmit}>
+            <label className="modal__label">Nick / imię</label>
+            <input
+              className="modal__input"
+              name="nickname"
+              value={form.nickname}
+              onChange={handleChange}
+              placeholder="np. xShadowHunter"
+              required
+            />
+            <label className="modal__label">E-mail</label>
+            <input
+              className={`modal__input${emailError ? ' modal__input--error' : form.email && EMAIL_REGEX.test(form.email) ? ' modal__input--valid' : ''}`}
+              name="email"
+              type="text"
+              value={form.email}
+              onChange={handleChange}
+              onBlur={handleEmailBlur}
+              placeholder="twoj@email.pl"
+              required
+            />
+            {emailError && <p className="modal__field-error">⚠ {emailError}</p>}
+            <label className="modal__label">Wiadomość (opcjonalnie)</label>
+            <textarea
+              className="modal__input modal__textarea"
+              name="message"
+              value={form.message}
+              onChange={handleChange}
+              placeholder="Chcę wesprzeć fundację bo..."
+              rows={3}
+            />
+            {status === 'error' && (
+              <p className="modal__error">❌ Coś poszło nie tak. Spróbuj ponownie.</p>
+            )}
+            <button
+              className="gh-btn"
+              type="submit"
+              disabled={status === 'loading'}
+              style={{ marginTop: '0.5rem' }}
+            >
+              {status === 'loading' ? 'Wysyłanie…' : '🚀 Zapisz się'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function ProjectPage({ onNavigate }) {
+  const [stats, setStats] = useState(STATS_FALLBACK)
+  const [showModal, setShowModal] = useState(false)
+
+  useEffect(() => {
+    if (!supabase) return
+    supabase
+      .from('stats')
+      .select('value, label, sort_order')
+      .order('sort_order')
+      .then(({ data, error }) => {
+        if (!error && data && data.length > 0) setStats(data)
+      })
+  }, [])
+
+
   return (
     <div className="gh-page">
-      <header className="gh-header">
-        <div className="gh-header__inner">
-          <div>
-            <p className="gh-header__label">Projektowanie Interfejsów WWW</p>
-            <h1 className="gh-title" data-text="O projekcie">O projekcie</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <button className="gh-btn" style={{ marginTop: 0, marginBottom: 0 }} onClick={onBack}>
-              ← Wróć
-            </button>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      {showModal && <RegistrationModal onClose={() => setShowModal(false)} />}
+      <Navbar onNavigate={onNavigate} currentView="project" />
 
-      <main className="gh-main">
+      <main className="gh-main" style={{ marginTop: '73px' }}>
+        <h1 className="gh-title" data-text="O projekcie" style={{ marginBottom: '2rem' }}>O projekcie</h1>
         {/* Hero */}
         <section className="project-hero">
           <span className="project-hero__icon">🎮</span>
@@ -151,7 +266,7 @@ export default function ProjectPage({ onBack }) {
             </p>
           </div>
           <div className="stats-row">
-            {STATS.map((stat) => (
+            {stats.map((stat) => (
               <div key={stat.label} className="stat-card">
                 <span className="stat-card__value">{stat.value}</span>
                 <span className="stat-card__label">{stat.label}</span>
@@ -205,18 +320,13 @@ export default function ProjectPage({ onBack }) {
           <p className="cta-section__text">
             Chcesz dołączyć do kolejnego turnieju lub wesprzeć naszą fundację?
           </p>
-          <button className="btn-cta">
+          <button className="btn-cta" onClick={() => setShowModal(true)}>
             🎮 Dołącz do GG WP for Good
           </button>
         </section>
       </main>
 
-      <footer className="gh-footer">
-        <div className="gh-footer__inner">
-          <p>Projekt &mdash; {new Date().getFullYear()}</p>
-          <p>O projekcie</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

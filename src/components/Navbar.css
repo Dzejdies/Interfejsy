@@ -1,0 +1,227 @@
+/* ── Navbar ── */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 2rem;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.navbar__logo {
+    font-family: 'Russo One', sans-serif;
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #fff;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    transition: opacity 0.15s;
+}
+
+.navbar__logo:hover {
+    opacity: 0.8;
+}
+
+.navbar__logo span {
+    color: var(--gh-cyan);
+}
+
+.navbar__right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Hamburger */
+.navbar__burger {
+    background: none;
+    border: 1px solid rgba(124, 58, 237, 0.4);
+    cursor: pointer;
+    padding: 0.5rem 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+}
+
+.navbar__burger:hover {
+    border-color: var(--gh-purple-lt);
+    box-shadow: var(--gh-glow-sm);
+}
+
+.navbar__burger span {
+    width: 22px;
+    height: 2px;
+    background: var(--gh-purple-lt);
+    display: block;
+    transition: all 0.3s ease;
+}
+
+.navbar__burger.open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.navbar__burger.open span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+}
+
+.navbar__burger.open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Overlay */
+.navbar__overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 300;
+    animation: navOverlayIn 0.25s forwards;
+    opacity: 0;
+}
+
+@keyframes navOverlayIn {
+    to {
+        opacity: 1;
+    }
+}
+
+/* Sidebar */
+.navbar__sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 280px;
+    background: #060606;
+    border-left: 1px solid rgba(124, 58, 237, 0.3);
+    z-index: 400;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem 0;
+    transform: translateX(100%);
+    animation: navSidebarIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    box-shadow: -10px 0 40px rgba(124, 58, 237, 0.15);
+}
+
+@keyframes navSidebarIn {
+    to {
+        transform: translateX(0);
+    }
+}
+
+.navbar__sidebar-close {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    color: var(--gh-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: color 0.15s;
+    line-height: 1;
+}
+
+.navbar__sidebar-close:hover {
+    color: #fff;
+}
+
+.navbar__sidebar-logo {
+    font-family: 'Russo One', sans-serif;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--gh-muted);
+    padding: 0 2rem 2rem;
+    border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+    margin-top: 1rem;
+}
+
+.navbar__sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 0;
+    flex: 1;
+}
+
+.navbar__sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 2rem;
+    background: none;
+    border: none;
+    color: var(--gh-muted);
+    font-family: 'Russo One', sans-serif;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: color 0.15s, background 0.15s;
+    position: relative;
+}
+
+.navbar__sidebar-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--gh-purple);
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.navbar__sidebar-item:hover,
+.navbar__sidebar-item.active {
+    color: #fff;
+    background: rgba(124, 58, 237, 0.07);
+}
+
+.navbar__sidebar-item.active::before,
+.navbar__sidebar-item:hover::before {
+    opacity: 1;
+}
+
+.navbar__sidebar-item.active {
+    color: var(--gh-purple-lt);
+}
+
+.navbar__sidebar-icon {
+    font-size: 1.1rem;
+    width: 1.5rem;
+    text-align: center;
+}
+
+.navbar__sidebar-footer {
+    padding: 1.5rem 2rem 0;
+    border-top: 1px solid rgba(124, 58, 237, 0.15);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(100, 116, 139, 0.4);
+    line-height: 1.8;
+}
+
+/* Spacer so page content doesn't hide under fixed nav */
+.navbar-spacer {
+    height: 73px;
+}

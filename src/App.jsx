@@ -2,9 +2,12 @@ import { useState } from 'react'
 import './App.css'
 import './gaming-home.css'
 import ThemeToggle from './themeToggle'
+import Navbar from './components/Navbar'
 import AnalysisPage from './pages/AnalysisPage'
 import ProjectPage from './pages/ProjectPage'
 import PlanPage from './pages/PlanPage'
+import LandingPage from './pages/LandingPage'
+import Footer from './components/Footer'
 
 const TEAM = [
   {
@@ -109,33 +112,36 @@ function GamingTeamMember({ name, role, description, index = 0 }) {
 }
 
 export default function App() {
-  const [view, setView] = useState('home')
+  const [view, setView] = useState('landing')
+
+  const navigate = (target) => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+    setView(target)
+  }
+
+  if (view === 'landing') {
+    return <LandingPage onNavigate={navigate} />
+  }
 
   if (view === 'analysis') {
-    return <AnalysisPage onBack={() => setView('home')} />
+    return <AnalysisPage onNavigate={navigate} />
   }
 
   if (view === 'project') {
-    return <ProjectPage onBack={() => setView('home')} />
+    return <ProjectPage onNavigate={navigate} />
   }
 
   if (view === 'plan') {
-    return <PlanPage onBack={() => setView('home')} />
+    return <PlanPage onNavigate={navigate} />
   }
 
+  // 'home' — O zespole
   return (
     <div className="gh-page">
-      <header className="gh-header">
-        <div className="gh-header__inner">
-          <div>
-            <p className="gh-header__label">Projektowanie Interfejsów WWW</p>
-            <h1 className="gh-title" data-text="O nas">O nas</h1>
-          </div>
-          <ThemeToggle />
-        </div>
-      </header>
+      <Navbar onNavigate={navigate} currentView="home" />
 
-      <main className="gh-main">
+      <main className="gh-main" style={{ marginTop: '73px' }}>
+        <h1 className="gh-title" data-text="O nas" style={{ marginBottom: '2rem' }}>O nas</h1>
         <section>
           <h2 className="gh-section-title">Nasz zespół</h2>
           <div className="gh-team-grid">
@@ -144,18 +150,6 @@ export default function App() {
             ))}
           </div>
         </section>
-
-        <div className="gh-btn-group">
-          <button className="gh-btn" onClick={() => setView('analysis')}>
-            Analiza UX →
-          </button>
-          <button className="gh-btn" onClick={() => setView('project')}>
-            O projekcie →
-          </button>
-          <button className="gh-btn" onClick={() => setView('plan')}>
-            Plan realizacji →
-          </button>
-        </div>
 
         <section className="gh-canvas">
           <div className="gh-canvas-header">
@@ -170,12 +164,7 @@ export default function App() {
         </section>
       </main>
 
-      <footer className="gh-footer">
-        <div className="gh-footer__inner">
-          <p>Projekt &mdash; {new Date().getFullYear()}</p>
-          <p>Ostatnio aktualizowany: {__BUILD_DATE__}</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }
