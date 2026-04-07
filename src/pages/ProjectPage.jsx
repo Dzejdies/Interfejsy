@@ -87,17 +87,44 @@ const VALUES = [
 
 // Regex: wymaga formatu xxx@xxx.xxx (min 1 znak przed @, domena z kropką i min 2 znaki TLD)
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+// Regex: tylko cyfry, spacje i myślniki, min 4 cyfry (najkrótsze numery na świecie mają 4 cyfry)
+const PHONE_REGEX = /^[\d\s\-]{4,}$/
+
+//Regex hasło
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/
+
+const DIAL_CODES = [
+  { code: '+48', label: '🇵🇱 +48' },
+  { code: '+1', label: '🇺🇸 +1' },
+  { code: '+44', label: '🇬🇧 +44' },
+  { code: '+49', label: '🇩🇪 +49' },
+  { code: '+33', label: '🇫🇷 +33' },
+  { code: '+34', label: '🇪🇸 +34' },
+  { code: '+39', label: '🇮🇹 +39' },
+  { code: '+380', label: '🇺🇦 +380' },
+  { code: '+420', label: '🇨🇿 +420' },
+  { code: '+36', label: '🇭🇺 +36' },
+  { code: 'other', label: '🌍 Inny…' },
+]
 
 function RegistrationModal({ onClose }) {
-  const [form, setForm] = useState({ nickname: '', email: '', message: '' })
+  const [form, setForm] = useState({ nickname: '', email: '', dialCode: '+48', phone: '', password: '', password_confirm: '', message: '' })
+  const [customDialCode, setCustomDialCode] = useState('')
+  const [customDialError, setCustomDialError] = useState('')
   const [emailError, setEmailError] = useState('')
+  const [phoneError, setPhoneError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordConfirmError, setPasswordConfirmError] = useState('')
   const [status, setStatus] = useState('idle') // idle | loading | success | error
+
+  const isCustomDial = form.dialCode === 'other'
+  const effectiveDialCode = isCustomDial ? customDialCode : form.dialCode
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
-    // Czyść błąd emaila podczas pisania
     if (name === 'email') setEmailError('')
+    if (name === 'phone') setPhoneError('')
   }
 
   const handleEmailBlur = () => {
@@ -108,6 +135,37 @@ function RegistrationModal({ onClose }) {
     }
   }
 
+  const handlePhoneBlur = () => {
+    if (form.phone && !PHONE_REGEX.test(form.phone)) {
+      setPhoneError('Podaj prawidłowy numer (min. 4 cyfry)')
+    } else {
+      setPhoneError('')
+    }
+  }
+
+  const handleCustomDialBlur = () => {
+    if (customDialCode && !/^\+\d{1,4}$/.test(customDialCode.trim())) {
+      setCustomDialError('Format: +XX lub +XXX (np. +351)')
+    } else {
+      setCustomDialError('')
+    }
+  }
+
+  const handlePasswordBlur = () => {
+    if (form.password && !PASSWORD_REGEX.test(form.password)) {
+      setPasswordError('Hasło musi zawierać co najmniej 8 znaków, w tym jedną małą literę, jedną dużą literę i jedną cyfrę')
+    } else {
+      setPasswordError('')
+    }
+  }
+  const handlePasswordConfirmBlur = () => {
+    if (form.password_confirm && (form.password_confirm !== form.password)) {
+      setPasswordConfirmError('Hasła się nie zgadzają')
+    } else {
+      setPasswordConfirmError('')
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     // Walidacja przed wysłaniem
@@ -115,16 +173,48 @@ function RegistrationModal({ onClose }) {
       setEmailError('Podaj prawidłowy adres e-mail (np. jan@domena.pl)')
       return
     }
+    if (!PHONE_REGEX.test(form.phone)) {
+      setPhoneError('Podaj prawidłowy numer (min. 4 cyfry)')
+      return
+    }
+    if (isCustomDial && !/^\+\d{1,4}$/.test(customDialCode.trim())) {
+      setCustomDialError('Format: +XX lub +XXX (np. +351)')
+      return
+    }
+    if (!PASSWORD_REGEX.test(form.password)) {
+      setPasswordError("Hasło musi zawierać co najmniej 8 znaków, w tym jedną małą literę, jedną dużą literę i jedną cyfrę")
+      return
+    }
+    if (form.password !== form.password_confirm) {
+      setPasswordConfirmError("Hasła się nie zgadzają")
+      return
+    }
     if (!supabase) {
       setStatus('error')
       return
     }
     setStatus('loading')
-    const { error } = await supabase.from('registrations').insert([
-      { nickname: form.nickname, email: form.email, message: form.message },
-    ])
+    const fullPhone = `${effectiveDialCode} ${form.phone.trim()}`
+    const { data, error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: {
+          //Metadata
+          display_name: form.nickname,
+          nickname: form.nickname,
+          phone: fullPhone,
+          message: form.message,
+        },
+        emailRedirectTo: window.location.origin + '/#confirmed'
+      }
+    })
     if (error) {
       console.error(error)
+      // Obsługa konkretnych błędów Supabase Auth
+      if (error.message.includes('already registered')) {
+        setEmailError('Ten e-mail jest już zarejestrowany')
+      }
       setStatus('error')
     } else {
       setStatus('success')
@@ -140,7 +230,7 @@ function RegistrationModal({ onClose }) {
         {status === 'success' ? (
           <div className="modal__success">
             <span className="modal__success-icon">✅</span>
-            <p>Zarejestrowano! Do zobaczenia na turnieju!</p>
+            <p>Zarejestrowano! Sprawdź skrzynkę pocztową aby potwierdzić maila i dokończyć rejstracje.</p>
             <button className="gh-btn" onClick={onClose}>Zamknij</button>
           </div>
         ) : (
@@ -166,6 +256,65 @@ function RegistrationModal({ onClose }) {
               required
             />
             {emailError && <p className="modal__field-error">⚠ {emailError}</p>}
+            <label className="modal__label">Numer telefonu</label>
+            <div className="modal__phone-row">
+              <select
+                className="modal__dial-select"
+                name="dialCode"
+                value={form.dialCode}
+                onChange={handleChange}
+              >
+                {DIAL_CODES.map((d) => (
+                  <option key={d.code} value={d.code}>{d.label}</option>
+                ))}
+              </select>
+              <input
+                className={`modal__input modal__phone-input${phoneError ? ' modal__input--error' : form.phone && PHONE_REGEX.test(form.phone) ? ' modal__input--valid' : ''}`}
+                name="phone"
+                type="tel"
+                value={form.phone}
+                onChange={handleChange}
+                onBlur={handlePhoneBlur}
+                placeholder="123 456 789"
+                required
+              />
+            </div>
+            {isCustomDial && (
+              <input
+                className={`modal__input modal__custom-dial${customDialError ? ' modal__input--error' : customDialCode && /^\+\d{1,4}$/.test(customDialCode.trim()) ? ' modal__input--valid' : ''}`}
+                value={customDialCode}
+                onChange={(e) => { setCustomDialCode(e.target.value); setCustomDialError('') }}
+                onBlur={handleCustomDialBlur}
+                placeholder="Wpisz kod kraju, np. +351"
+              />
+            )}
+            {customDialError && <p className="modal__field-error">⚠ {customDialError}</p>}
+            {phoneError && <p className="modal__field-error">⚠ {phoneError}</p>}
+            <label className="modal__label">Hasło</label>
+            <input
+              className="modal__input"
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              onBlur={handlePasswordBlur}
+              placeholder="Hasło"
+              required
+            />
+            {passwordError && <p className="modal__field-error">⚠ {passwordError}</p>}
+            {/* confirm password */}
+            <label className="modal__label">Potwierdź hasło</label>
+            <input
+              className="modal__input"
+              name="password_confirm"
+              type="password"
+              value={form.password_confirm}
+              onChange={handleChange}
+              onBlur={handlePasswordConfirmBlur}
+              placeholder="Potwierdź hasło"
+              required
+            />
+            {passwordConfirmError && <p className="modal__field-error">⚠ {passwordConfirmError}</p>}
             <label className="modal__label">Wiadomość (opcjonalnie)</label>
             <textarea
               className="modal__input modal__textarea"
@@ -193,7 +342,7 @@ function RegistrationModal({ onClose }) {
   )
 }
 
-export default function ProjectPage({ onNavigate }) {
+export default function ProjectPage({ onNavigate, user, onAuthChange }) {
   const [stats, setStats] = useState(STATS_FALLBACK)
   const [showModal, setShowModal] = useState(false)
 
@@ -212,7 +361,7 @@ export default function ProjectPage({ onNavigate }) {
   return (
     <div className="gh-page">
       {showModal && <RegistrationModal onClose={() => setShowModal(false)} />}
-      <Navbar onNavigate={onNavigate} currentView="project" />
+      <Navbar onNavigate={onNavigate} currentView="project" user={user} onAuthChange={onAuthChange} />
 
       <main className="gh-main" style={{ marginTop: '73px' }}>
         <h1 className="gh-title" data-text="O projekcie" style={{ marginBottom: '2rem' }}>O projekcie</h1>
