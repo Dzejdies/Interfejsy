@@ -12,6 +12,8 @@ import ConfirmationPage from './pages/ConfirmationPage'
 import AccountPage from './pages/AccountPage'
 import AdminPage from './pages/AdminPage'
 import TournamentDetailsPage from './pages/TournamentDetailsPage'
+import DashboardPage from './pages/DashboardPage'
+import TournamentsListPage from './pages/TournamentsListPage'
 import { ToastProvider } from './components/Toast'
 import { supabase } from './lib/supabase'
 
@@ -142,7 +144,10 @@ export default function App() {
 
     // Restore session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUser(session.user)
+      if (session?.user) {
+        setUser(session.user)
+        setView(prev => prev === 'landing' ? 'dashboard' : prev)
+      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -151,9 +156,12 @@ export default function App() {
         if (window.location.hash.includes('access_token')) {
           setView('confirmed')
           window.history.replaceState(null, '', window.location.pathname)
+        } else {
+          setView('dashboard')
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
+        setView('landing')
       }
     })
 
@@ -181,6 +189,7 @@ export default function App() {
   }
 
   const renderPage = () => {
+    if (view === 'dashboard' && user) return <DashboardPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
     if (view === 'landing') return <LandingPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
     if (view === 'analysis') return <AnalysisPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
     if (view === 'project') return <ProjectPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
@@ -198,10 +207,11 @@ export default function App() {
     if (view === 'tournament-details') {
       return <TournamentDetailsPage tournamentId={selectedData} onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
     }
+    if (view === 'tournaments-list') return <TournamentsListPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
 
     // Default: 'home' — O zespole
     return (
-      <div className={`app-container ${view}-view`}>
+      <div className="gh-page">
         <Navbar 
           onNavigate={navigate} 
           currentView={view} 

@@ -9,6 +9,7 @@ import './LoginModal.css'
 const NAV_ITEMS = [
     { icon: '🏠', label: 'O zespole', view: 'home' },
     { icon: '🎮', label: 'O projekcie', view: 'project' },
+    { icon: '🏆', label: 'Baza Turniejów', view: 'tournaments-list' },
     { icon: '🔬', label: 'Analiza UX', view: 'analysis' },
     { icon: '📋', label: 'Plan realizacji', view: 'plan' },
 ]
@@ -37,7 +38,7 @@ export default function Navbar({ onNavigate, currentView, user, onAuthChange, in
     return (
         <>
             <nav className="navbar">
-                <button className="navbar__logo" onClick={() => go('landing')}>
+                <button className="navbar__logo" onClick={() => go(user ? 'dashboard' : 'landing')}>
                     🎮 GG WP <span>for Good</span>
                 </button>
                 <div className="navbar__right">
@@ -95,6 +96,15 @@ export default function Navbar({ onNavigate, currentView, user, onAuthChange, in
                         )}
 
                         <nav className="navbar__sidebar-nav">
+                            {user && (
+                                <button
+                                    className={`navbar__sidebar-item${currentView === 'dashboard' ? ' active' : ''}`}
+                                    onClick={() => go('dashboard')}
+                                >
+                                    <span className="navbar__sidebar-icon">📊</span>
+                                    Dashboard
+                                </button>
+                            )}
                             {NAV_ITEMS.map((item) => (
                                 <button
                                     key={item.view}

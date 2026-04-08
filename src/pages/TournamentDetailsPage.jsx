@@ -64,7 +64,7 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
 
         const { data: teamsData, error: teamsError } = await supabase
           .from('teams')
-          .select('id, team_name, tag, leader_id, avatar_url, team_members(count)')
+          .select('id, team_name, tag, leader_id, avatar_url, team_members(id, status)')
           .eq('tournament_id', tournamentId)
 
         if (!teamsError && teamsData) {
@@ -74,7 +74,7 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
             tag: t.tag,
             leader_id: t.leader_id,
             avatar_url: t.avatar_url,
-            member_count: t.team_members?.[0]?.count || 1
+            member_count: t.team_members ? t.team_members.filter(m => m.status === 'accepted').length : 1
           }))
           setTeams(mappedTeams)
 

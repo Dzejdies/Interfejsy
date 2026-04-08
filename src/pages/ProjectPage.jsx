@@ -473,16 +473,11 @@ function TournamentSkeleton() {
 
 export default function ProjectPage({ onNavigate, user, onAuthChange }) {
   const [stats, setStats] = useState([])
-  const [tournaments, setTournaments] = useState([])
+  const [tournaments, setTournaments] = useState([]) // Będzie zawierał tylko top 3 turnieje z widoku ProjectPage
   const [isLoading, setIsLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [showEnrollModal, setShowEnrollModal] = useState(false)
   const [selectedTournament, setSelectedTournament] = useState(null)
-  const [tournamentFilter, setTournamentFilter] = useState('all')
-
-  const filteredTournaments = tournaments.filter(t => 
-    tournamentFilter === 'all' ? true : t.status === tournamentFilter
-  )
 
   useEffect(() => {
     let mounted = true
@@ -533,9 +528,14 @@ export default function ProjectPage({ onNavigate, user, onAuthChange }) {
           }))
           
           if (mappedData.length > 0) {
-            setTournaments(mappedData)
+            // Filtrujemy do nowej polityki widoku
+            const upcoming = mappedData.filter(t => t.status === 'upcoming' || t.status === 'live').slice(0, 2);
+            const completed = mappedData.filter(t => t.status === 'completed').slice(0, 1);
+            setTournaments([...upcoming, ...completed])
           } else {
-            setTournaments(TOURNAMENTS_FALLBACK)
+            const upMock = TOURNAMENTS_FALLBACK.filter(t => t.status === 'upcoming' || t.status === 'live').slice(0, 2);
+            const coMock = TOURNAMENTS_FALLBACK.filter(t => t.status === 'completed').slice(0, 1);
+            setTournaments([...upMock, ...coMock])
           }
         }
       } catch (err) {
@@ -670,38 +670,17 @@ export default function ProjectPage({ onNavigate, user, onAuthChange }) {
         <section className="project-section">
           <div className="project-section__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <h2 className="project-section__title">🏆 Turnieje</h2>
+              <h2 className="project-section__title">🏆 Wybrane Turnieje</h2>
               <p className="project-section__subtitle">
-                Nadchodzące i zakończone wydarzenia e-sportowe
+                Najbliższe nadchodzące i ostatnie wydarzenia e-sportowe
               </p>
             </div>
-            
-            <div className="tournament-filters">
-              <button 
-                className={`gh-filter-btn ${tournamentFilter === 'all' ? 'gh-filter-btn--active' : ''}`}
-                onClick={() => setTournamentFilter('all')}
-              >
-                Wszystkie
-              </button>
-              <button 
-                className={`gh-filter-btn ${tournamentFilter === 'upcoming' ? 'gh-filter-btn--active' : ''}`}
-                onClick={() => setTournamentFilter('upcoming')}
-              >
-                Nadchodzące
-              </button>
-              <button 
-                className={`gh-filter-btn ${tournamentFilter === 'live' ? 'gh-filter-btn--active' : ''}`}
-                onClick={() => setTournamentFilter('live')}
-              >
-                Na żywo
-              </button>
-              <button 
-                className={`gh-filter-btn ${tournamentFilter === 'completed' ? 'gh-filter-btn--active' : ''}`}
-                onClick={() => setTournamentFilter('completed')}
-              >
-                Zakończone
-              </button>
-            </div>
+            <button 
+              className="gh-btn gh-btn--outline" 
+              onClick={() => onNavigate('tournaments-list')}
+            >
+              Zobacz Wszystkie ➔
+            </button>
           </div>
 
           {isLoading ? (
@@ -710,9 +689,9 @@ export default function ProjectPage({ onNavigate, user, onAuthChange }) {
               <TournamentSkeleton />
               <TournamentSkeleton />
             </div>
-          ) : filteredTournaments.length > 0 ? (
+          ) : tournaments.length > 0 ? (
             <div className="project-grid project-grid--3">
-              {filteredTournaments.map((t) => (
+              {tournaments.map((t) => (
                 <div key={t.id} className={`tournament-card tournament-card--${t.status}`}>
                 <div className="tournament-card__header">
                   <span className={`tournament-card__badge tournament-card__badge--${t.status}`}>
@@ -751,7 +730,7 @@ export default function ProjectPage({ onNavigate, user, onAuthChange }) {
           ) : (
             <div className="gh-empty-state">
               <span className="gh-empty-state__icon">🕵️</span>
-              <p>Brak turniejów w wybranej kategorii.</p>
+              <p>Obecnie brak przypisanych turniejów w zespole projektowym.</p>
             </div>
           )}
         </section>
