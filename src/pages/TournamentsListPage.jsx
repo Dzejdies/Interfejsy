@@ -3,6 +3,7 @@ import './ProjectPage.css' // Używamy wspóldzielonych stylów kart turniejów
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { supabase } from '../lib/supabase'
+import '../components/button.css'
 
 const TOURNAMENTS_FALLBACK = [
   {

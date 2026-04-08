@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import './DashboardPage.css'
+import '../components/button.css'
 
 export default function DashboardPage({ onNavigate, user, onAuthChange }) {
   const [stats, setStats] = useState({

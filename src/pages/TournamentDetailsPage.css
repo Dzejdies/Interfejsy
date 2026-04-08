@@ -48,7 +48,7 @@
   background: var(--gh-bg-card);
   padding: 2rem;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   margin-bottom: 2rem;
 }
 
@@ -56,7 +56,7 @@
   font-size: 1.5rem;
   color: var(--gh-title-c);
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding-bottom: 0.5rem;
 }
 
@@ -65,8 +65,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   margin-bottom: 1rem;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -91,7 +91,7 @@
   display: flex;
   justify-content: space-between;
   padding: 1rem 0;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .td-sidebar-stat:last-child {
@@ -115,7 +115,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(0,0,0,0.2);
+  background: rgba(0, 0, 0, 0.2);
   padding: 0.8rem;
   border-radius: 8px;
   margin-bottom: 0.5rem;
@@ -124,26 +124,4 @@
 .td-btn-group {
   display: flex;
   gap: 0.5rem;
-}
-
-.gh-btn--sm {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
-}
-
-.gh-btn--danger {
-  background: #e11d48;
-}
-.gh-btn--danger:hover {
-  background: #be123c;
-}
-
-.gh-btn--outline {
-  background: transparent;
-  border: 1px solid var(--gh-cyan);
-  color: var(--gh-cyan);
-}
-.gh-btn--outline:hover {
-  background: var(--gh-cyan);
-  color: #000;
 }
