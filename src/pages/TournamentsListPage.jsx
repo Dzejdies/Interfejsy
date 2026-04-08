@@ -139,7 +139,7 @@ export default function TournamentsListPage({ onNavigate, user, onAuthChange }) 
 
       <main className="gh-main" style={{ marginTop: '73px' }}>
         
-        <button className="gh-btn gh-btn--outline" onClick={() => onNavigate('dashboard')} style={{marginBottom:'1rem'}}>
+        <button className="gh-btn gh-btn--outline" onClick={() => onNavigate(user ? 'dashboard' : 'landing')} style={{marginBottom:'1rem'}}>
           ← Powrót do Panelu
         </button>
 
