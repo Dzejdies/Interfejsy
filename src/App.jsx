@@ -124,14 +124,14 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [team, setTeam] = useState(TEAM)
   const [selectedData, setSelectedData] = useState(null)
-  
+
   // Ref to store scroll positions for different views/states
   const scrollPositions = useRef({})
 
   useEffect(() => {
     const key = view + (selectedData ? '-' + selectedData : '');
     const saved = scrollPositions.current[key] || 0;
-    
+
     // We need a tiny delay to allow the new view to render its content length
     const handle = requestAnimationFrame(() => {
       window.scrollTo(0, saved);
@@ -146,7 +146,8 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user)
-        setView(prev => prev === 'landing' ? 'dashboard' : prev)
+        //setView(prev => prev === 'landing' ? 'dashboard' : prev)
+        setView('landing')
       }
     })
 
@@ -183,7 +184,7 @@ export default function App() {
     // Save current scroll position before leaving
     const key = view + (selectedData ? '-' + selectedData : '');
     scrollPositions.current[key] = window.scrollY;
-    
+
     setView(target)
     setSelectedData(data)
   }
@@ -196,10 +197,10 @@ export default function App() {
     if (view === 'plan') return <PlanPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
     if (view === 'confirmed') return <ConfirmationPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
     if (view === 'account') {
-      return <AccountPage 
-        onNavigate={navigate} 
-        user={user} 
-        onAuthChange={handleAuthChange} 
+      return <AccountPage
+        onNavigate={navigate}
+        user={user}
+        onAuthChange={handleAuthChange}
         initialTabData={selectedData}
       />
     }
@@ -212,11 +213,11 @@ export default function App() {
     // Default: 'home' — O zespole
     return (
       <div className="gh-page">
-        <Navbar 
-          onNavigate={navigate} 
-          currentView={view} 
-          user={user} 
-          onAuthChange={handleAuthChange} 
+        <Navbar
+          onNavigate={navigate}
+          currentView={view}
+          user={user}
+          onAuthChange={handleAuthChange}
           initialTabData={selectedData}
         />
         <main className="gh-main" style={{ marginTop: '73px' }}>
