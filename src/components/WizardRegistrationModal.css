@@ -120,9 +120,22 @@
 }
 
 .wizard-subtitle {
-  color: var(--gh-text-c);
+  color: var(--gh-muted);
+  font-size: 0.85rem;
   margin-bottom: 2rem;
-  font-size: 0.95rem;
+}
+
+.wizard-mode-toggle {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px dashed var(--gh-border);
+}
+
+.wizard-mode-toggle .gh-btn {
+  flex: 1;
+  font-size: 0.75rem;
 }
 
 .wizard-field {

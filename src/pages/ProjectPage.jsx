@@ -450,9 +450,31 @@ function EnrollModal({ onClose, tournament, user }) {
   )
 }
 
+function StatSkeleton() {
+  return (
+    <div className="stat-skeleton skeleton">
+      <div className="bar-val skeleton" />
+      <div className="bar-lbl skeleton" />
+    </div>
+  )
+}
+
+function TournamentSkeleton() {
+  return (
+    <div className="tournament-skeleton skeleton">
+      <div className="img-box skeleton" />
+      <div className="title-box skeleton" />
+      <div className="text-box skeleton" />
+      <div className="text-box skeleton" style={{ width: '60%' }} />
+      <div className="btn-box skeleton" />
+    </div>
+  )
+}
+
 export default function ProjectPage({ onNavigate, user, onAuthChange }) {
-  const [stats, setStats] = useState(STATS_FALLBACK)
-  const [tournaments, setTournaments] = useState(TOURNAMENTS_FALLBACK)
+  const [stats, setStats] = useState([])
+  const [tournaments, setTournaments] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [showEnrollModal, setShowEnrollModal] = useState(false)
   const [selectedTournament, setSelectedTournament] = useState(null)
@@ -463,53 +485,78 @@ export default function ProjectPage({ onNavigate, user, onAuthChange }) {
   )
 
   useEffect(() => {
-    if (!supabase) {
-      if (import.meta.env.DEV) console.log('No Supabase connection. Using STATS_FALLBACK and TOURNAMENTS_FALLBACK.');
-      return;
-    }
-    supabase
-      .from('stats')
-      .select('value, label, sort_order')
-      .order('sort_order')
-      .then(({ data, error }) => {
-        if (!error && data && data.length > 0) {
-          if (import.meta.env.DEV) console.log('🗄️ Stats fetched from Supabase');
-          setStats(data)
-        } else {
-          if (import.meta.env.DEV) console.log('⚠️ Failed to fetch stats from Supabase or table empty. Using STATS_FALLBACK.');
+    let mounted = true
+    
+    // Safety fallback timeout (3s)
+    const timeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        if (import.meta.env.DEV) console.log('🕒 Supabase timeout (3s). Using fallbacks.');
+        if (stats.length === 0) setStats(STATS_FALLBACK);
+        if (tournaments.length === 0) setTournaments(TOURNAMENTS_FALLBACK);
+        setIsLoading(false);
+      }
+    }, 3000)
+
+    const fetchData = async () => {
+      if (!supabase) return
+
+      try {
+        // Fetch stats
+        const { data: sData } = await supabase
+          .from('stats')
+          .select('value, label, sort_order')
+          .order('sort_order')
+        
+        if (mounted && sData && sData.length > 0) {
+          setStats(sData)
+        } else if (mounted) {
+          setStats(STATS_FALLBACK)
         }
-      })
-    supabase
-      .from('tournaments')
-      .select('*, teams(count)')
-      .order('start_date', { ascending: true })
-      .then(({ data, error }) => {
-        if (!error && data) {
-          const mappedData = data.map(t => ({
+
+        // Fetch tournaments
+        const { data: tData } = await supabase
+          .from('tournaments')
+          .select('*, teams(count)')
+          .order('start_date', { ascending: true })
+
+        if (mounted && tData) {
+          const mappedData = tData.map(t => ({
             id: t.id,
             title: t.name,
             game: t.game,
             description: t.description,
             date: t.start_date,
             max_participants: t.max_teams,
-            // Mapowanie statusów z DB na format wyświetlania frontu
             status: t.status === 'open' ? 'upcoming' : (t.status === 'ongoing' ? 'live' : (t.status === 'finished' ? 'completed' : t.status)),
             prize_pool: t.prize_pool,
             participants_count: t.teams?.[0]?.count || 0
           }))
           
           if (mappedData.length > 0) {
-            if (import.meta.env.DEV) console.log('🗄️ Tournaments fetched from Supabase');
             setTournaments(mappedData)
           } else {
-            if (import.meta.env.DEV) console.log('⚠️ No tournaments in DB. Using TOURNAMENTS_FALLBACK.');
             setTournaments(TOURNAMENTS_FALLBACK)
           }
-        } else {
-          if (import.meta.env.DEV) console.log('⚠️ Error fetching tournaments. Using TOURNAMENTS_FALLBACK.', error);
+        }
+      } catch (err) {
+        if (mounted) {
+          setStats(STATS_FALLBACK)
           setTournaments(TOURNAMENTS_FALLBACK)
         }
-      })
+      } finally {
+        if (mounted) {
+          clearTimeout(timeout)
+          setIsLoading(false)
+        }
+      }
+    }
+
+    fetchData()
+
+    return () => {
+      mounted = false
+      clearTimeout(timeout)
+    }
   }, [])
 
 
@@ -582,12 +629,21 @@ export default function ProjectPage({ onNavigate, user, onAuthChange }) {
             </p>
           </div>
           <div className="stats-row">
-            {stats.map((stat) => (
-              <div key={stat.label} className="stat-card">
-                <span className="stat-card__value">{stat.value}</span>
-                <span className="stat-card__label">{stat.label}</span>
-              </div>
-            ))}
+            {isLoading ? (
+              <>
+                <StatSkeleton />
+                <StatSkeleton />
+                <StatSkeleton />
+                <StatSkeleton />
+              </>
+            ) : (
+              stats.map((stat) => (
+                <div key={stat.label} className="stat-card">
+                  <span className="stat-card__value">{stat.value}</span>
+                  <span className="stat-card__label">{stat.label}</span>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
@@ -648,7 +704,13 @@ export default function ProjectPage({ onNavigate, user, onAuthChange }) {
             </div>
           </div>
 
-          {filteredTournaments.length > 0 ? (
+          {isLoading ? (
+            <div className="project-grid project-grid--3">
+              <TournamentSkeleton />
+              <TournamentSkeleton />
+              <TournamentSkeleton />
+            </div>
+          ) : filteredTournaments.length > 0 ? (
             <div className="project-grid project-grid--3">
               {filteredTournaments.map((t) => (
                 <div key={t.id} className={`tournament-card tournament-card--${t.status}`}>

@@ -16,6 +16,39 @@ export default function WizardRegistrationModal({ tournament, user, onClose, onS
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [myManagedTeams, setMyManagedTeams] = useState([]);
+  const [mode, setMode] = useState('new'); // 'new' | 'existing'
+  const [selectedTeamId, setSelectedTeamId] = useState('');
+
+  React.useEffect(() => {
+    const fetchMyTeams = async () => {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('leader_id', user.id);
+      
+      if (!error && data?.length > 0) {
+        setMyManagedTeams(data);
+        // Default to existing if they have any
+        setMode('existing');
+        handleSelectExisting(data[0]);
+      }
+    };
+    fetchMyTeams();
+  }, [user.id]);
+
+  const handleSelectExisting = (team) => {
+    setSelectedTeamId(team.id);
+    setFormData({
+      ...formData,
+      team_name: team.team_name,
+      tag: team.tag,
+      avatarPreview: team.avatar_url,
+      avatarFile: null, // No need to re-upload
+      discord_id: team.discord_id || '',
+      game_rank: team.game_rank || ''
+    });
+  };
 
   const nextStep = () => {
     if (step === 1 && (!formData.team_name.trim() || !formData.tag.trim())) {
@@ -74,36 +107,57 @@ export default function WizardRegistrationModal({ tournament, user, onClose, onS
         avatar_url = data.publicUrl;
       }
 
-      // Zapisujemy nową drużynę
-      const { data: newTeam, error: dbError } = await supabase
-        .from('teams')
-        .insert({
-          tournament_id: tournament.id,
-          leader_id: user.id,
-          team_name: formData.team_name,
-          tag: formData.tag.toUpperCase(),
-          avatar_url: avatar_url,
-          discord_id: formData.discord_id,
-          game_rank: formData.game_rank
-        })
-        .select()
-        .single();
+      // Jeśli tworzymy nową, to inserujemy. Jeśli wybieramy istniejącą, updatujemy tournament_id.
+      let finalTeam;
 
-      if (dbError) throw dbError;
+      if (mode === 'new') {
+        const { data: newTeam, error: dbError } = await supabase
+          .from('teams')
+          .insert({
+            tournament_id: tournament.id,
+            leader_id: user.id,
+            team_name: formData.team_name,
+            tag: formData.tag.toUpperCase(),
+            avatar_url: avatar_url,
+            discord_id: formData.discord_id,
+            game_rank: formData.game_rank
+          })
+          .select()
+          .single();
 
-      // DODATEK: Automatycznie dodajemy lidera do tabeli team_members
-      const { error: memberError } = await supabase
-        .from('team_members')
-        .insert({
-          team_id: newTeam.id,
-          user_id: user.id,
-          role: 'captain',
-          status: 'accepted'
-        });
+        if (dbError) throw dbError;
+        finalTeam = newTeam;
 
-      if (memberError) throw memberError;
+        // DODATEK: Automatycznie dodajemy lidera do tabeli team_members
+        const { error: memberError } = await supabase
+          .from('team_members')
+          .insert({
+            team_id: finalTeam.id,
+            user_id: user.id,
+            status: 'accepted'
+          });
 
-      onSuccess(newTeam); // Poinformowanie powracającego komponentu
+        if (memberError) throw memberError;
+      } else {
+        // Mode existing: Aktualizujemy obecną drużynę o ID turnieju
+        const { data: updatedTeam, error: updateError } = await supabase
+          .from('teams')
+          .update({ 
+            tournament_id: tournament.id,
+            discord_id: formData.discord_id,
+            game_rank: formData.game_rank,
+            // Opcjonalnie aktualizujemy avatar jeśli wgrano nowy
+            ...(avatar_url && { avatar_url })
+          })
+          .eq('id', selectedTeamId)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        finalTeam = updatedTeam;
+      }
+
+      onSuccess(finalTeam); // Poinformowanie powracającego komponentu
 
     } catch (err) {
       console.error(err);
@@ -119,7 +173,7 @@ export default function WizardRegistrationModal({ tournament, user, onClose, onS
         <button className="wizard-close" onClick={onClose}>✕</button>
         
         <div className="wizard-header">
-          <h2>Rejestracja Drużyny</h2>
+          <h2>Zapisy na turniej</h2>
           <div className="wizard-progress">
             <div className={`step-dot ${step >= 1 ? 'active' : ''}`}>1</div>
             <div className={`step-line ${step >= 2 ? 'active' : ''}`}></div>
@@ -136,18 +190,68 @@ export default function WizardRegistrationModal({ tournament, user, onClose, onS
         <div className="wizard-body">
           {step === 1 && (
             <div className="wizard-step">
-              <h3>Podstawy Drużyny</h3>
-              <p className="wizard-subtitle">Wybierz unikalną nazwę i wyróżnij się własnym logiem.</p>
+              <h3>Wybór Drużyny</h3>
+              <p className="wizard-subtitle">Zgłoś swoją istniejącą ekipę lub stwórz zupełnie nową.</p>
               
-              <div className="wizard-field">
-                <label>Nazwa reprezentująca drużynę *</label>
-                <input 
-                  type="text" 
-                  value={formData.team_name}
-                  onChange={e => setFormData({...formData, team_name: e.target.value})}
-                  placeholder="np. Niezwyciężeni Orłowie" 
-                />
-              </div>
+              {myManagedTeams.length > 0 && (
+                <div className="wizard-mode-toggle">
+                  <button 
+                    className={`gh-btn btn-sm ${mode === 'existing' ? '' : 'gh-btn--outline'}`}
+                    onClick={() => setMode('existing')}
+                  >
+                    Wybierz moją drużynę
+                  </button>
+                  <button 
+                    className={`gh-btn btn-sm ${mode === 'new' ? '' : 'gh-btn--outline'}`}
+                    onClick={() => {
+                      setMode('new');
+                      setFormData({...formData, team_name: '', tag: '', avatarPreview: null});
+                    }}
+                  >
+                    Stwórz nowy skład
+                  </button>
+                </div>
+              )}
+
+              {mode === 'existing' ? (
+                <div className="wizard-field" style={{marginTop: '1.5rem'}}>
+                  <label>Wybierz drużynę *</label>
+                  <select 
+                    value={selectedTeamId} 
+                    onChange={(e) => {
+                      const team = myManagedTeams.find(t => t.id === e.target.value);
+                      if (team) handleSelectExisting(team);
+                    }}
+                  >
+                    {myManagedTeams.map(t => (
+                      <option key={t.id} value={t.id}>{t.team_name} [{t.tag}]</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <>
+                  <div className="wizard-field" style={{marginTop: '1rem'}}>
+                    <label>Nazwa reprezentująca drużynę *</label>
+                    <input 
+                      type="text" 
+                      value={formData.team_name}
+                      onChange={e => setFormData({...formData, team_name: e.target.value})}
+                      placeholder="np. Niezwyciężeni Orłowie" 
+                    />
+                  </div>
+
+                  <div className="wizard-field">
+                    <label>Tag Drużyny (2-5 znaków) *</label>
+                    <input 
+                      type="text" 
+                      value={formData.tag}
+                      onChange={e => setFormData({...formData, tag: e.target.value.toUpperCase()})}
+                      placeholder="np. ORŁY" 
+                      maxLength={5}
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="wizard-field">
                 <label>Tag Drużyny (2-5 znaków) *</label>

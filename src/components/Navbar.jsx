@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ThemeToggle from '../themeToggle'
 import LoginModal from './LoginModal'
 import { supabase } from '../lib/supabase'
+import NotificationCenter from './NotificationCenter'
 import './Navbar.css'
 import './LoginModal.css'
 
@@ -12,13 +13,13 @@ const NAV_ITEMS = [
     { icon: '📋', label: 'Plan realizacji', view: 'plan' },
 ]
 
-export default function Navbar({ onNavigate, currentView, user, onAuthChange }) {
+export default function Navbar({ onNavigate, currentView, user, onAuthChange, initialTabData }) {
     const [open, setOpen] = useState(false)
     const [showLogin, setShowLogin] = useState(false)
 
-    const go = (view) => {
+    const go = (view, data = null) => {
         setOpen(false)
-        onNavigate(view)
+        onNavigate(view, data)
     }
 
     const handleLogout = async () => {
@@ -42,11 +43,10 @@ export default function Navbar({ onNavigate, currentView, user, onAuthChange }) 
                 <div className="navbar__right">
                     {user ? (
                         <div className="navbar__user">
+                            <NotificationCenter user={user} />
                             <div className="navbar__user-avatar" onClick={() => go('account')} style={{ cursor: 'pointer' }}>
                                 {avatarUrl ? <img src={avatarUrl} alt="Avatar" /> : initials}
                             </div>
-                            <span className="navbar__user-name" onClick={() => go('account')} style={{ cursor: 'pointer' }}>{nickname}</span>
-                            <button className="navbar__logout-btn" onClick={handleLogout}>Wyloguj</button>
                         </div>
                     ) : (
                         <button className="navbar__login-btn" onClick={() => setShowLogin(true)}>
@@ -110,8 +110,15 @@ export default function Navbar({ onNavigate, currentView, user, onAuthChange }) 
                         {user ? (
                             <>
                                 <button
-                                    className={`navbar__sidebar-item${currentView === 'account' ? ' active' : ''}`}
-                                    onClick={() => go('account')}
+                                    className={`navbar__sidebar-item${currentView === 'account' && initialTabData?.tab === 'teams' ? ' active' : ''}`}
+                                    onClick={() => go('account', { tab: 'teams' })}
+                                >
+                                    <span className="navbar__sidebar-icon">👥</span>
+                                    Moje drużyny
+                                </button>
+                                <button
+                                    className={`navbar__sidebar-item${currentView === 'account' && (!initialTabData || initialTabData?.tab === 'profile') ? ' active' : ''}`}
+                                    onClick={() => go('account', { tab: 'profile' })}
                                 >
                                     <span className="navbar__sidebar-icon">👤</span>
                                     Moje konto

@@ -12,6 +12,7 @@ import ConfirmationPage from './pages/ConfirmationPage'
 import AccountPage from './pages/AccountPage'
 import AdminPage from './pages/AdminPage'
 import TournamentDetailsPage from './pages/TournamentDetailsPage'
+import { ToastProvider } from './components/Toast'
 import { supabase } from './lib/supabase'
 
 const TEAM = [
@@ -158,7 +159,7 @@ export default function App() {
 
     // Fetch team members from DB
     supabase
-      .from('team_members')
+      .from('website_team')
       .select('name, role, description, sort_order')
       .order('sort_order')
       .then(({ data, error }) => {
@@ -179,64 +180,66 @@ export default function App() {
     setSelectedData(data)
   }
 
-  if (view === 'landing') {
-    return <LandingPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
+  const renderPage = () => {
+    if (view === 'landing') return <LandingPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
+    if (view === 'analysis') return <AnalysisPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
+    if (view === 'project') return <ProjectPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
+    if (view === 'plan') return <PlanPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
+    if (view === 'confirmed') return <ConfirmationPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
+    if (view === 'account') {
+      return <AccountPage 
+        onNavigate={navigate} 
+        user={user} 
+        onAuthChange={handleAuthChange} 
+        initialTabData={selectedData}
+      />
+    }
+    if (view === 'admin') return <AdminPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
+    if (view === 'tournament-details') {
+      return <TournamentDetailsPage tournamentId={selectedData} onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
+    }
+
+    // Default: 'home' — O zespole
+    return (
+      <div className={`app-container ${view}-view`}>
+        <Navbar 
+          onNavigate={navigate} 
+          currentView={view} 
+          user={user} 
+          onAuthChange={handleAuthChange} 
+          initialTabData={selectedData}
+        />
+        <main className="gh-main" style={{ marginTop: '73px' }}>
+          <h1 className="gh-title" data-text="O nas" style={{ marginBottom: '2rem' }}>O nas</h1>
+          <section>
+            <h2 className="gh-section-title">Nasz zespół</h2>
+            <div className="gh-team-grid">
+              {team.map((member, i) => (
+                <GamingTeamMember key={member.name} {...member} index={i} />
+              ))}
+            </div>
+          </section>
+
+          <section className="gh-canvas">
+            <div className="gh-canvas-header">
+              <h2 className="gh-canvas-title">Team Canvas</h2>
+              <p className="gh-canvas-subtitle">Jak pracujemy i co nas łączy</p>
+            </div>
+            <div className="gh-canvas-grid">
+              {CANVAS_SECTIONS.map((s) => (
+                <CanvasCell key={s.id} {...s} />
+              ))}
+            </div>
+          </section>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
-  if (view === 'analysis') {
-    return <AnalysisPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
-  }
-
-  if (view === 'project') {
-    return <ProjectPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
-  }
-
-  if (view === 'plan') {
-    return <PlanPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
-  }
-  if (view === 'confirmed') {
-    return <ConfirmationPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
-  }
-  if (view === 'account') {
-    return <AccountPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
-  }
-  if (view === 'admin') {
-    return <AdminPage onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
-  }
-  if (view === 'tournament-details') {
-    return <TournamentDetailsPage tournamentId={selectedData} onNavigate={navigate} user={user} onAuthChange={handleAuthChange} />
-  }
-
-  // 'home' — O zespole
   return (
-    <div className="gh-page">
-      <Navbar onNavigate={navigate} currentView="home" user={user} onAuthChange={handleAuthChange} />
-
-      <main className="gh-main" style={{ marginTop: '73px' }}>
-        <h1 className="gh-title" data-text="O nas" style={{ marginBottom: '2rem' }}>O nas</h1>
-        <section>
-          <h2 className="gh-section-title">Nasz zespół</h2>
-          <div className="gh-team-grid">
-            {team.map((member, i) => (
-              <GamingTeamMember key={member.name} {...member} index={i} />
-            ))}
-          </div>
-        </section>
-
-        <section className="gh-canvas">
-          <div className="gh-canvas-header">
-            <h2 className="gh-canvas-title">Team Canvas</h2>
-            <p className="gh-canvas-subtitle">Jak pracujemy i co nas łączy</p>
-          </div>
-          <div className="gh-canvas-grid">
-            {CANVAS_SECTIONS.map((s) => (
-              <CanvasCell key={s.id} {...s} />
-            ))}
-          </div>
-        </section>
-      </main>
-
-      <Footer />
-    </div>
+    <ToastProvider>
+      {renderPage()}
+    </ToastProvider>
   )
 }
