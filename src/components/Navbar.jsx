@@ -45,7 +45,7 @@ export default function Navbar({ onNavigate, currentView, user, onAuthChange, in
                 <div className="navbar__right">
                     {user ? (
                         <div className="navbar__user">
-                            <NotificationCenter user={user} />
+                            <NotificationCenter user={user} onNavigate={onNavigate} />
                             <div className="navbar__user-avatar" onClick={() => go('account')} style={{ cursor: 'pointer' }}>
                                 {avatarUrl ? <img src={avatarUrl} alt="Avatar" /> : initials}
                             </div>

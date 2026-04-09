@@ -17,6 +17,7 @@
 
 .notif-btn:hover {
   transform: scale(1.1);
+  cursor: pointer;
 }
 
 .notif-badge {
@@ -37,20 +38,29 @@
   top: 100%;
   right: 0;
   width: 350px;
-  background: rgba(8, 8, 8, 0.95); /* Solidne tło z lekkim alpha */
+  background: rgba(8, 8, 8, 0.95);
+  /* Solidne tło z lekkim alpha */
   backdrop-filter: blur(15px);
   border: 1px solid var(--gh-purple);
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(124, 58, 237, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(124, 58, 237, 0.1);
   margin-top: 1rem;
-  z-index: 9999; /* Bardzo wysoki z-index */
+  z-index: 9999;
+  /* Bardzo wysoki z-index */
   overflow: hidden;
   animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes slideInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .notif-header {
@@ -78,6 +88,7 @@
 
 .notif-mark-read:hover {
   text-decoration: underline;
+  cursor: pointer;
 }
 
 .notif-list {
@@ -105,7 +116,8 @@
 }
 
 .notif-item:hover {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
 }
 
 .notif-item.unread {
@@ -145,6 +157,7 @@
 .notif-list::-webkit-scrollbar {
   width: 6px;
 }
+
 .notif-list::-webkit-scrollbar-thumb {
   background: var(--gh-border);
   border-radius: 10px;
