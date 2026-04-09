@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import './DashboardPage.css'
+import '../components/button.css'
+import NotificationRedirect from '../components/notificationRedirect'
 
 export default function DashboardPage({ onNavigate, user, onAuthChange }) {
   const [stats, setStats] = useState({
@@ -10,17 +12,17 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
     ggwpPoints: user?.user_metadata?.ggwp_points || 0,
     level: 1
   })
-  
+
   const [feed, setFeed] = useState([])
   const [nextTournament, setNextTournament] = useState(null)
   const [myTeam, setMyTeam] = useState(null)
   const [timeLeft, setTimeLeft] = useState('--:--')
-  
+
   const nickname = user?.user_metadata?.nickname || user?.email?.split('@')[0] || 'Graczu'
 
   useEffect(() => {
     let mounted = true
-    
+
     const fetchDashboardData = async () => {
       // 1. Zapisane turnieje (solowo)
       const { data: participants } = await supabase
@@ -30,7 +32,7 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
           tournaments(id, name, game, start_date)
         `)
         .eq('user_id', user.id)
-      
+
       // 2. Aktywna Drużyna / Turnieje (drużynowo)
       const { data: teamsData } = await supabase
         .from('teams')
@@ -54,7 +56,7 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
       if (teamsData) {
         allUpcoming = [...allUpcoming, ...teamsData.map(t => t.tournaments).filter(t => t)];
       }
-      
+
       // Filtrujemy null'e, duplikaty (po id) i turnieje przeszłe
       const uniqueUpcoming = Array.from(new Map(
         allUpcoming
@@ -63,15 +65,15 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
       ).values());
 
       let enrolledCount = (participants ? participants.length : 0) + (teamsData ? teamsData.filter(t => t.tournament_id).length : 0);
-      
+
       if (mounted) {
         setStats(prev => ({
-          ...prev, 
+          ...prev,
           tournamentsEnrolled: enrolledCount,
           level: Math.floor(enrolledCount / 3) + 1,
           ggwpPoints: user?.user_metadata?.ggwp_points || (enrolledCount * 250)
         }))
-        
+
         if (teamsData && teamsData.length > 0) {
           setMyTeam(teamsData[0]); // Pokaż pierwszą drużynę w jakiej gracz jest
         }
@@ -89,15 +91,16 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(4)
-        
+
       if (mounted && notifs) {
         const mappedFeed = notifs.map(n => ({
           id: n.id,
           icon: n.title.includes('Zaproszenie') || n.title.includes('Drużyny') ? '📩' : (n.title.includes('Liderem') ? '👑' : '🔔'),
           text: n.message,
-          time: new Date(n.created_at).toLocaleDateString()
+          time: new Date(n.created_at).toLocaleDateString(),
+          type: n.type // <-- PRZEKAZANIE TYPU Z BAZY DANYCH
         }))
-        
+
         // Dorzucamy jedno statyczne globalne, jeśli nie ma bazy feedu
         setFeed([
           ...mappedFeed,
@@ -105,7 +108,7 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
         ].slice(0, 4))
       }
     }
-    
+
     if (user) fetchDashboardData()
 
     return () => { mounted = false }
@@ -125,13 +128,13 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
         const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
         const m = Math.floor((diff / 1000 / 60) % 60);
         const s = Math.floor((diff / 1000) % 60);
-        
+
         let str = '';
         if (d > 0) str += `${d}d `;
         str += `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         setTimeLeft(str);
       }
-      
+
       updateTimer(); // Od razu
       interval = setInterval(updateTimer, 1000); // Co sekundę
     }
@@ -143,12 +146,12 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
       <Navbar onNavigate={onNavigate} currentView="dashboard" user={user} onAuthChange={onAuthChange} />
 
       <main className="dashboard-main" style={{ marginTop: '73px' }}>
-        
+
         {/* Header Section */}
         <header className="dashboard-header">
           <h1 className="dashboard-welcome">Witaj z powrotem, {nickname}!</h1>
           <p className="dashboard-subtitle">Oto Twój panel dowodzenia.</p>
-          
+
           <div className="quick-stats">
             <div className="q-stat">
               <span className="q-stat-value">Lvl {stats.level}</span>
@@ -171,14 +174,14 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
             <h3>Nadchodzące wyzwanie</h3>
             {nextTournament ? (
               <>
-                <p>Jesteś zapisany na turniej: <strong style={{ color: 'var(--gh-cyan)' }}>{nextTournament.name}</strong> ({nextTournament.game}).<br/>Przygotuj formę i bierz udział w walce o fundusze!</p>
+                <p>Jesteś zapisany na turniej: <strong style={{ color: 'var(--gh-cyan)' }}>{nextTournament.name}</strong> ({nextTournament.game}).<br />Przygotuj formę i bierz udział w walce o fundusze!</p>
                 <button className="gh-btn" style={{ padding: '0.5rem 1.5rem', marginTop: '0' }} onClick={() => onNavigate('project')}>
                   Zobacz szczegóły
                 </button>
               </>
             ) : (
               <>
-                <p>Obecnie nie bierzesz udziału w żadnym aktywnym turnieju.<br/>Znajdź interesujące Cię zawody i wspomóż cel charytatywny!</p>
+                <p>Obecnie nie bierzesz udziału w żadnym aktywnym turnieju.<br />Znajdź interesujące Cię zawody i wspomóż cel charytatywny!</p>
                 <button className="gh-btn" onClick={() => onNavigate('tournaments-list')}>
                   🔍 Szukaj Turniejów
                 </button>
@@ -192,7 +195,7 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
 
         {/* Split Layout */}
         <div className="dashboard-grid">
-          
+
           {/* Left Column (Team & Tournaments) */}
           <div className="dash-column-left">
             <div className="dash-panel" style={{ marginBottom: '2rem' }}>
@@ -210,13 +213,13 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
                     </p>
                     <div className="team-members-row">
                       {myTeam.members?.filter(m => m.status === 'accepted').map(m => (
-                        <div 
-                          key={m.user_id} 
+                        <div
+                          key={m.user_id}
                           title={m.profile?.nickname}
                           className={`team-member-avatar ${m.user_id === myTeam.leader_id ? 'leader' : ''}`}
                         >
                           {m.profile?.avatar_url ? (
-                            <img src={m.profile.avatar_url} alt="avatar" style={{width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover'}} />
+                            <img src={m.profile.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                           ) : (
                             (m.profile?.nickname || 'U')[0].toUpperCase()
                           )}
@@ -234,7 +237,7 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
 
             <div className="dash-panel">
               <div className="dash-panel-header">
-               <span className="dash-panel-title">📋 Historia Wyników</span>
+                <span className="dash-panel-title">📋 Historia Wyników</span>
               </div>
               <div className="gh-empty-state" style={{ padding: '2rem' }}>
                 <span className="gh-empty-state__icon">📈</span>
@@ -251,7 +254,9 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
               </div>
               <div className="feed-content">
                 {feed.map(item => (
-                  <div key={item.id} className="feed-item">
+                  <div key={item.id} className="feed-item" onClick={() => {
+                    NotificationRedirect({ onNavigate, n: item })
+                  }}>
                     <div className="feed-icon">{item.icon}</div>
                     <div className="feed-text">
                       <h4>{item.text}</h4>

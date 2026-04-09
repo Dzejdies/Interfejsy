@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useToast } from './Toast'
 import './NotificationCenter.css'
+import NotificationRedirect from './notificationRedirect'
 
-export default function NotificationCenter({ user }) {
+export default function NotificationCenter({ user, onNavigate }) {
   const [notifications, setNotifications] = useState([])
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -29,7 +30,7 @@ export default function NotificationCenter({ user }) {
         (payload) => {
           setNotifications(prev => [payload.new, ...prev])
           setUnreadCount(prev => prev + 1)
-          
+
           // Show toast for new notification
           showToast(payload.new.title)
         }
@@ -108,7 +109,9 @@ export default function NotificationCenter({ user }) {
               <p className="notif-empty">Brak powiadomień</p>
             ) : (
               notifications.map(n => (
-                <div key={n.id} className={`notif-item ${!n.is_read ? 'unread' : ''}`}>
+                <div key={n.id} className={`notif-item ${!n.is_read ? 'unread' : ''}`} onClick={() => {
+                  NotificationRedirect({ onNavigate, n })
+                }}>
                   <span className="notif-icon">{getIcon(n.type)}</span>
                   <div className="notif-content">
                     <p className="notif-title">{n.title}</p>

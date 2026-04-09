@@ -3,6 +3,7 @@ import './ProjectPage.css'
 import Navbar from '../components/Navbar'
 import { supabase } from '../lib/supabase'
 import Footer from '../components/Footer'
+import '../components/button.css'
 
 const GOALS = [
   {

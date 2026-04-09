@@ -3,6 +3,7 @@ import './ProjectPage.css' // Używamy wspóldzielonych stylów kart turniejów
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { supabase } from '../lib/supabase'
+import '../components/button.css'
 
 const TOURNAMENTS_FALLBACK = [
   {
@@ -61,14 +62,14 @@ function TournamentSkeleton() {
 export default function TournamentsListPage({ onNavigate, user, onAuthChange }) {
   const [tournaments, setTournaments] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  
+
   // Wyszukiwanie i Filtrowanie
   const [searchQuery, setSearchQuery] = useState('')
   const [gameFilter, setGameFilter] = useState('all')
 
   useEffect(() => {
     let mounted = true
-    
+
     const timeout = setTimeout(() => {
       if (mounted && isLoading) {
         setTournaments(TOURNAMENTS_FALLBACK)
@@ -97,7 +98,7 @@ export default function TournamentsListPage({ onNavigate, user, onAuthChange }) 
             prize_pool: t.prize_pool,
             participants_count: t.teams?.[0]?.count || 0
           }))
-          
+
           if (mappedData.length > 0) {
             setTournaments(mappedData)
           } else {
@@ -126,10 +127,10 @@ export default function TournamentsListPage({ onNavigate, user, onAuthChange }) 
   const uniqueGames = Array.from(new Set(tournaments.map(t => t.game))).filter(Boolean)
 
   const filteredTournaments = tournaments.filter(t => {
-    const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (t.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.description || '').toLowerCase().includes(searchQuery.toLowerCase())
     const matchesGame = gameFilter === 'all' ? true : t.game === gameFilter
-    
+
     return matchesSearch && matchesGame
   })
 
@@ -138,9 +139,17 @@ export default function TournamentsListPage({ onNavigate, user, onAuthChange }) 
       <Navbar onNavigate={onNavigate} currentView="project" user={user} onAuthChange={onAuthChange} />
 
       <main className="gh-main" style={{ marginTop: '73px' }}>
-        
-        <button className="gh-btn gh-btn--outline" onClick={() => onNavigate('dashboard')} style={{marginBottom:'1rem'}}>
-          ← Powrót do Panelu
+
+        {/* Made the button return to the page you came from */}
+
+        {/* <button className="gh-btn gh-btn--outline" onClick={() => onNavigate(user ? 'dashboard' : 'landing')} style={{ marginBottom: '1rem' }}> */}
+        {/* ← Powrót do Panelu */}
+        {/* {user ? '← Powrót do Panelu' : '← Powrót do Strony Głównej'} */}
+        {/* </button> */}
+
+        <button className="gh-btn gh-btn--outline" onClick={() => onNavigate('project')} style={{ marginBottom: '1rem' }}>
+          {/* ← Powrót do Panelu */}
+          ← Powrót do o Projekcie
         </button>
 
         <section className="project-section" style={{ marginTop: '1rem' }}>
@@ -152,15 +161,15 @@ export default function TournamentsListPage({ onNavigate, user, onAuthChange }) 
               Znajdź interesujące Cię wydarzenia. Przeglądaj, wyszukuj i dołączaj do walki o wyższe cele.
             </p>
           </div>
-          
+
           {/* PasekWyszukiwania / Kontrolki */}
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '2rem', padding: '1rem', background: 'var(--gh-bg-secondary)', borderRadius: '8px', border: '1px solid var(--gh-border)' }}>
-            
+
             <div style={{ flex: '1 1 300px' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--gh-text-c)' }}>Wyszukaj po nazwie</label>
-              <input 
-                type="text" 
-                placeholder="Szukaj..." 
+              <input
+                type="text"
+                placeholder="Szukaj..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ width: '100%', padding: '0.8rem', borderRadius: '4px', border: '1px solid var(--gh-border)', background: 'var(--gh-bg)', color: 'var(--gh-text)', outline: 'none' }}
@@ -169,7 +178,7 @@ export default function TournamentsListPage({ onNavigate, user, onAuthChange }) 
 
             <div style={{ flex: '1 1 200px' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--gh-text-c)' }}>Filtruj grę</label>
-              <select 
+              <select
                 value={gameFilter}
                 onChange={(e) => setGameFilter(e.target.value)}
                 style={{ width: '100%', padding: '0.8rem', borderRadius: '4px', border: '1px solid var(--gh-border)', background: 'var(--gh-bg)', color: 'var(--gh-text)', outline: 'none' }}
@@ -180,7 +189,7 @@ export default function TournamentsListPage({ onNavigate, user, onAuthChange }) 
                 ))}
               </select>
             </div>
-            
+
           </div>
 
           {isLoading ? (
@@ -231,7 +240,7 @@ export default function TournamentsListPage({ onNavigate, user, onAuthChange }) 
             <div className="gh-empty-state">
               <span className="gh-empty-state__icon">🕵️</span>
               <p>Brak turniejów spełniających kryteria wyszukiwania.</p>
-              <button className="gh-btn gh-btn--outline" onClick={() => {setSearchQuery(''); setGameFilter('all')}} style={{marginTop: '1rem'}}>
+              <button className="gh-btn gh-btn--outline" onClick={() => { setSearchQuery(''); setGameFilter('all') }} style={{ marginTop: '1rem' }}>
                 Wyczyść filtry
               </button>
             </div>

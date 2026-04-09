@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import './WizardRegistrationModal.css';
+import './button.css';
 
 export default function WizardRegistrationModal({ tournament, user, onClose, onSuccess }) {
   const [step, setStep] = useState(1);

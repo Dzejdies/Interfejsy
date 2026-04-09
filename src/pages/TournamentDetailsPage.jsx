@@ -4,8 +4,13 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { supabase } from '../lib/supabase'
 import WizardRegistrationModal from '../components/WizardRegistrationModal'
+import { useParams } from 'react-router-dom'
+import '../components/button.css'
 
-export default function TournamentDetailsPage({ tournamentId, onNavigate, user, onAuthChange }) {
+export default function TournamentDetailsPage({ tournamentId: propsTournamentId, onNavigate, user, onAuthChange }) {
+  const { id } = useParams()
+  const tournamentId = id || propsTournamentId;
+  
   // Stan turnieju
   const [tournament, setTournament] = useState(null)
   const [teams, setTeams] = useState([])
@@ -19,7 +24,7 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
   // Okienka (Modals)
   const [showCreateTeam, setShowCreateTeam] = useState(false)
   const [teamForm, setTeamForm] = useState({ team_name: '' })
-  
+
   // Status akcji
   const [actionStatus, setActionStatus] = useState('')
 
@@ -88,7 +93,7 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
                 .select('team_id, status')
                 .eq('user_id', user.id)
                 .eq('status', 'accepted');
-              
+
               if (memberData && memberData.length > 0) {
                 myT = mappedTeams.find(t => memberData.some(m => m.team_id === t.id));
               }
@@ -104,7 +109,7 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
                   .select('id, user_id, status')
                   .eq('team_id', myT.id)
                   .eq('status', 'pending')
-                
+
                 if (reqData) {
                   setPendingRequests(reqData.map(r => ({
                     id: r.id,
@@ -121,7 +126,7 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
                 .select('*')
                 .eq('team_id', myT.id)
                 .order('created_at', { ascending: true })
-              
+
               if (msgData) setMessages(msgData)
             }
           }
@@ -137,10 +142,10 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
   }, [tournamentId, user])
 
   const handleTeamCreated = (newTeamData) => {
-    const completeTeamInfo = { 
-      id: newTeamData.id, 
-      team_name: newTeamData.team_name, 
-      leader_id: newTeamData.leader_id, 
+    const completeTeamInfo = {
+      id: newTeamData.id,
+      team_name: newTeamData.team_name,
+      leader_id: newTeamData.leader_id,
       member_count: 1,
       avatar_url: newTeamData.avatar_url
     }
@@ -155,16 +160,16 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
       alert("Musisz być zalogowany, aby dołączyć.")
       return
     }
-    
+
     try {
       const { error } = await supabase
         .from('team_members')
         .insert({ team_id: teamId, user_id: user.id, status: 'pending' });
-        
+
       if (error) throw error;
-      
+
       alert('Wysłano prośbę do lidera drużyny! Oczekuj na akceptację.')
-    } catch(err) {
+    } catch (err) {
       alert('Błąd podczas wysyłania prośby: ' + err.message)
     }
   }
@@ -179,9 +184,9 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
         const { error } = await supabase.from('team_members').update({ status: 'accepted' }).eq('id', reqId);
         if (error) throw error;
       }
-      
+
       setPendingRequests(prev => prev.filter(req => req.id !== reqId))
-      
+
       if (action === 'accepted') {
         alert('Użytkownik został dodany do drużyny!')
       } else {
@@ -218,16 +223,16 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
 
       {/* Modal tworzenia drużyny */}
       {showCreateTeam && (
-        <WizardRegistrationModal 
-          tournament={tournament} 
-          user={user} 
-          onClose={() => setShowCreateTeam(false)} 
-          onSuccess={handleTeamCreated} 
+        <WizardRegistrationModal
+          tournament={tournament}
+          user={user}
+          onClose={() => setShowCreateTeam(false)}
+          onSuccess={handleTeamCreated}
         />
       )}
 
       <main className="gh-main" style={{ marginTop: '73px' }}>
-        <button className="gh-btn gh-btn--outline" onClick={() => onNavigate('project')} style={{marginBottom:'1rem'}}>
+        <button className="gh-btn gh-btn--outline" onClick={() => onNavigate('project')} style={{ marginBottom: '1rem' }}>
           ← Powrót do projektów
         </button>
 
@@ -245,18 +250,18 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
         <div className="td-content-grid">
           {/* Główna sekcja */}
           <div className="td-main-content">
-            
+
             {/* Panel Drużyny */}
             {myTeam && (
               <section className="td-section td-team-panel">
-                <h2 className="td-section__title" style={{color: 'var(--gh-cyan)'}}>🛡️ Twoja Drużyna: {myTeam.team_name}</h2>
-                
+                <h2 className="td-section__title" style={{ color: 'var(--gh-cyan)' }}>🛡️ Twoja Drużyna: {myTeam.team_name}</h2>
+
                 {isLeader && pendingRequests.length > 0 && (
-                  <div className="td-requests-mini-panel" style={{marginBottom: '1.5rem', padding: '1rem', background: 'var(--gh-bg-secondary)', borderRadius: '6px', border: '1px solid var(--gh-border)'}}>
-                    <h3 style={{fontSize: '1rem', marginBottom: '0.5rem', color: 'var(--gh-text)'}}>Oczekujące prośby o dołączenie</h3>
+                  <div className="td-requests-mini-panel" style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--gh-bg-secondary)', borderRadius: '6px', border: '1px solid var(--gh-border)' }}>
+                    <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: 'var(--gh-text)' }}>Oczekujące prośby o dołączenie</h3>
                     {pendingRequests.map(req => (
-                      <div key={req.id} className="td-request-item" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem'}}>
-                        <span style={{fontSize: '0.9rem'}}>{req.user_name}</span>
+                      <div key={req.id} className="td-request-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.9rem' }}>{req.user_name}</span>
                         <div className="td-btn-group">
                           <button className="gh-btn gh-btn--sm" onClick={() => handleLeaderAction(req.id, 'accepted')}>✓ Akceptuj</button>
                           <button className="gh-btn gh-btn--sm gh-btn--danger" onClick={() => handleLeaderAction(req.id, 'rejected')}>✕ Odrzuć</button>
@@ -267,9 +272,9 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
                 )}
 
                 {/* Team Chat */}
-                <div className="td-team-chat" style={{display: 'flex', flexDirection: 'column', background: 'var(--gh-bg-secondary)', border: '1px solid var(--gh-border)', borderRadius: '6px', height: '350px'}}>
-                  <div className="td-chat-messages" style={{flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-                    {messages.length === 0 ? <span style={{color: 'var(--gh-text-c)', fontSize: '0.9rem', textAlign: 'center', marginTop: 'auto', marginBottom: 'auto'}}>Brak wiadomości. Przywitaj się!</span> : (
+                <div className="td-team-chat" style={{ display: 'flex', flexDirection: 'column', background: 'var(--gh-bg-secondary)', border: '1px solid var(--gh-border)', borderRadius: '6px', height: '350px' }}>
+                  <div className="td-chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {messages.length === 0 ? <span style={{ color: 'var(--gh-text-c)', fontSize: '0.9rem', textAlign: 'center', marginTop: 'auto', marginBottom: 'auto' }}>Brak wiadomości. Przywitaj się!</span> : (
                       messages.map(m => (
                         <div key={m.id} style={{
                           alignSelf: m.user_id === user?.id ? 'flex-end' : 'flex-start',
@@ -278,15 +283,15 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
                           borderRadius: '8px',
                           maxWidth: '80%'
                         }}>
-                          {m.user_id !== user?.id && <div style={{fontSize: '0.65rem', color: 'var(--gh-text-c)', marginBottom: '0.2rem'}}>Kolega z drużyny</div>}
-                          <div style={{fontSize: '0.9rem', wordBreak: 'break-word'}}>{m.message}</div>
+                          {m.user_id !== user?.id && <div style={{ fontSize: '0.65rem', color: 'var(--gh-text-c)', marginBottom: '0.2rem' }}>Kolega z drużyny</div>}
+                          <div style={{ fontSize: '0.9rem', wordBreak: 'break-word' }}>{m.message}</div>
                         </div>
                       ))
                     )}
                   </div>
-                  <form onSubmit={handleSendMessage} style={{display: 'flex', borderTop: '1px solid var(--gh-border)'}}>
-                    <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Napisz do drużyny..." style={{flex: 1, background: 'transparent', border: 'none', color: 'var(--gh-text)', padding: '0.8rem', outline: 'none'}} />
-                    <button type="submit" className="gh-btn gh-btn--sm" disabled={!newMessage.trim()} style={{margin: '0.4rem', border: 'none'}}>Wyślij</button>
+                  <form onSubmit={handleSendMessage} style={{ display: 'flex', borderTop: '1px solid var(--gh-border)' }}>
+                    <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Napisz do drużyny..." style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--gh-text)', padding: '0.8rem', outline: 'none' }} />
+                    <button type="submit" className="gh-btn gh-btn--sm" disabled={!newMessage.trim()} style={{ margin: '0.4rem', border: 'none' }}>Wyślij</button>
                   </form>
                 </div>
               </section>
@@ -300,26 +305,27 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
                   const isFull = t.member_count >= limit;
 
                   return (
-                  <div key={t.id} className="td-team-card" style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
-                    {t.avatar_url ? (
-                      <img src={t.avatar_url} alt="Logo" style={{width:'50px', height:'50px', borderRadius:'8px', objectFit:'cover', border:'1px solid var(--gh-border)'}} />
-                    ) : (
-                      <div style={{width:'50px', height:'50px', borderRadius:'8px', background:'var(--gh-bg-secondary)', border:'1px solid var(--gh-border)', display:'flex', alignItems:'center', justifyContent:'center'}}>🖼️</div>
-                    )}
-                    <div className="td-team-info" style={{flex: 1}}>
-                      <h4>
-                        {t.tag && <span style={{color: 'var(--gh-cyan)', marginRight: '0.4rem'}}>[{t.tag}]</span>}
-                        {t.team_name} {myTeam?.id === t.id && '(Twoja drużyna)'} {isFull && <span style={{color:'var(--gh-danger)', fontSize:'0.75rem', marginLeft:'0.5rem', fontWeight:'normal'}}>PEŁNA</span>}
-                      </h4>
-                      <p>Graczy: {t.member_count} / {limit}</p>
+                    <div key={t.id} className="td-team-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      {t.avatar_url ? (
+                        <img src={t.avatar_url} alt="Logo" style={{ width: '50px', height: '50px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--gh-border)' }} />
+                      ) : (
+                        <div style={{ width: '50px', height: '50px', borderRadius: '8px', background: 'var(--gh-bg-secondary)', border: '1px solid var(--gh-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🖼️</div>
+                      )}
+                      <div className="td-team-info" style={{ flex: 1 }}>
+                        <h4>
+                          {t.tag && <span style={{ color: 'var(--gh-cyan)', marginRight: '0.4rem' }}>[{t.tag}]</span>}
+                          {t.team_name} {myTeam?.id === t.id && '(Twoja drużyna)'} {isFull && <span style={{ color: 'var(--gh-danger)', fontSize: '0.75rem', marginLeft: '0.5rem', fontWeight: 'normal' }}>PEŁNA</span>}
+                        </h4>
+                        <p>Graczy: {t.member_count} / {limit}</p>
+                      </div>
+                      {myTeam?.id !== t.id && !isFull && (
+                        <button className="gh-btn gh-btn--outline" onClick={() => handleJoinTeam(t.id)}>
+                          Dołącz do nich
+                        </button>
+                      )}
                     </div>
-                    {myTeam?.id !== t.id && !isFull && (
-                      <button className="gh-btn gh-btn--outline" onClick={() => handleJoinTeam(t.id)}>
-                        Dołącz do nich
-                      </button>
-                    )}
-                  </div>
-                )})
+                  )
+                })
               )}
             </section>
           </div>
@@ -338,11 +344,11 @@ export default function TournamentDetailsPage({ tournamentId, onNavigate, user, 
               </div>
               <div className="td-sidebar-stat">
                 <span>Status</span>
-                <span style={{color: 'var(--gh-purple-lt)'}}>{tournament?.status}</span>
+                <span style={{ color: 'var(--gh-purple-lt)' }}>{tournament?.status}</span>
               </div>
-              <div style={{marginTop: '1.5rem'}}>
-                <h3 style={{fontSize:'1.1rem', marginBottom:'0.5rem'}}>Zasady</h3>
-                <p style={{color:'var(--gh-text-c)', whiteSpace:'pre-wrap', lineHeight:1.5}}>
+              <div style={{ marginTop: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Zasady</h3>
+                <p style={{ color: 'var(--gh-text-c)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                   {tournament?.rules}
                 </p>
               </div>

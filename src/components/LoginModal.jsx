@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import './LoginModal.css'
+import './button.css'
 
 export default function LoginModal({ onClose, onSuccess }) {
   const [mode, setMode] = useState('login') // 'login' | 'reset'
