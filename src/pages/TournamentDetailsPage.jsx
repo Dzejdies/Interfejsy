@@ -27,16 +27,10 @@ export default function TournamentDetailsPage({ tournamentId: propsTournamentId,
   const [myTeam, setMyTeam] = useState(null) // Twoja drużyna
   const [isLeader, setIsLeader] = useState(false)
   const [pendingRequests, setPendingRequests] = useState([]) // Prośby do mojej drużyny
-  const [messages, setMessages] = useState([])
-  const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
 
   // Okienka (Modals)
   const [showCreateTeam, setShowCreateTeam] = useState(false)
-  const [teamForm, setTeamForm] = useState({ team_name: '' })
-
-  // Status akcji
-  const [actionStatus, setActionStatus] = useState('')
 
   useEffect(() => {
     async function fetchData() {
@@ -130,14 +124,6 @@ export default function TournamentDetailsPage({ tournamentId: propsTournamentId,
                 }
               }
 
-              // Pobieranie wiadomości czatu
-              const { data: msgData } = await supabase
-                .from('team_messages')
-                .select('*')
-                .eq('team_id', myT.id)
-                .order('created_at', { ascending: true })
-
-              if (msgData) setMessages(msgData)
             }
           }
         }
@@ -201,24 +187,6 @@ export default function TournamentDetailsPage({ tournamentId: propsTournamentId,
       }
     } catch (err) {
       alert('Wystąpił błąd podczas zmiany statusu: ' + err.message);
-    }
-  }
-
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !myTeam || !user) return;
-
-    try {
-      const msg = { team_id: myTeam.id, user_id: user.id, message: newMessage.trim() };
-      const { error } = await supabase.from('team_messages').insert(msg);
-      if (!error) {
-        setMessages([...messages, { ...msg, id: Math.random(), created_at: new Date().toISOString() }]);
-        setNewMessage('');
-      } else {
-        console.error('Błąd wysyłania:', error);
-      }
-    } catch (err) {
-      console.error(err);
     }
   }
 
@@ -293,29 +261,9 @@ export default function TournamentDetailsPage({ tournamentId: propsTournamentId,
                   </div>
                 )}
 
-                {/* Team Chat */}
-                <div className="td-team-chat" style={{ display: 'flex', flexDirection: 'column', background: 'var(--gh-bg-secondary)', border: '1px solid var(--gh-border)', borderRadius: '6px', height: '350px' }}>
-                  <div className="td-chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {messages.length === 0 ? <span style={{ color: 'var(--gh-text-c)', fontSize: '0.9rem', textAlign: 'center', marginTop: 'auto', marginBottom: 'auto' }}>Brak wiadomości. Przywitaj się!</span> : (
-                      messages.map(m => (
-                        <div key={m.id} style={{
-                          alignSelf: m.user_id === user?.id ? 'flex-end' : 'flex-start',
-                          background: m.user_id === user?.id ? 'var(--gh-border)' : 'var(--gh-bg)',
-                          padding: '0.5rem 0.8rem',
-                          borderRadius: '8px',
-                          maxWidth: '80%'
-                        }}>
-                          {m.user_id !== user?.id && <div style={{ fontSize: '0.65rem', color: 'var(--gh-text-c)', marginBottom: '0.2rem' }}>Kolega z drużyny</div>}
-                          <div style={{ fontSize: '0.9rem', wordBreak: 'break-word' }}>{m.message}</div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <form onSubmit={handleSendMessage} style={{ display: 'flex', borderTop: '1px solid var(--gh-border)' }}>
-                    <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Napisz do drużyny..." style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--gh-text)', padding: '0.8rem', outline: 'none' }} />
-                    <button type="submit" className="gh-btn gh-btn--sm" disabled={!newMessage.trim()} style={{ margin: '0.4rem', border: 'none' }}>Wyślij</button>
-                  </form>
-                </div>
+                <p style={{ color: 'var(--gh-muted)', fontSize: '0.85rem' }}>
+                  Czat drużyny dostępny w zakładce <strong>Moje Drużyny</strong> na stronie konta.
+                </p>
               </section>
             )}
 
