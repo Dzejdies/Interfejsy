@@ -36,19 +36,23 @@ export default function WizardRegistrationModal({ tournament, user, onClose, onS
   const [myManagedTeams, setMyManagedTeams] = useState([]);
   const [mode, setMode] = useState('new'); // 'new' | 'existing'
   const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [teamSizeError, setTeamSizeError] = useState('');
 
   React.useEffect(() => {
     const fetchMyTeams = async () => {
       const { data, error } = await supabase
         .from('teams')
-        .select('*')
+        .select('*, team_members(id, status)')
         .eq('leader_id', user.id);
-      
+
       if (!error && data?.length > 0) {
-        setMyManagedTeams(data);
-        // Default to existing if they have any
+        const withCount = data.map(t => ({
+          ...t,
+          member_count: t.team_members?.filter(m => m.status === 'accepted').length || 1
+        }));
+        setMyManagedTeams(withCount);
         setMode('existing');
-        handleSelectExisting(data[0]);
+        handleSelectExisting(withCount[0]);
       }
     };
     fetchMyTeams();
@@ -56,18 +60,28 @@ export default function WizardRegistrationModal({ tournament, user, onClose, onS
 
   const handleSelectExisting = (team) => {
     setSelectedTeamId(team.id);
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       team_name: team.team_name,
       tag: team.tag,
       avatarPreview: team.avatar_url,
-      avatarFile: null, // No need to re-upload
+      avatarFile: null,
       discord_id: team.discord_id || '',
       game_rank: team.game_rank || ''
-    });
+    }));
+    const limit = tournament?.team_size || 5;
+    if ((team.member_count || 1) > limit) {
+      setTeamSizeError(`Ta drużyna ma ${team.member_count} graczy, a turniej pozwala na max ${limit}. Usuń członków przed dołączeniem.`);
+    } else {
+      setTeamSizeError('');
+    }
   };
 
   const nextStep = () => {
+    if (step === 1 && mode === 'existing' && teamSizeError) {
+      setError(teamSizeError);
+      return;
+    }
     if (step === 1 && (!formData.team_name.trim() || !formData.tag.trim())) {
       setError('Nazwa drużyny i Tag są wymagane!');
       return;
@@ -233,53 +247,47 @@ export default function WizardRegistrationModal({ tournament, user, onClose, onS
               {mode === 'existing' ? (
                 <div className="wizard-field" style={{marginTop: '1.5rem'}}>
                   <label>Wybierz drużynę *</label>
-                  <select 
-                    value={selectedTeamId} 
+                  <select
+                    value={selectedTeamId}
                     onChange={(e) => {
                       const team = myManagedTeams.find(t => t.id === e.target.value);
                       if (team) handleSelectExisting(team);
                     }}
                   >
                     {myManagedTeams.map(t => (
-                      <option key={t.id} value={t.id}>{t.team_name} [{t.tag}]</option>
+                      <option key={t.id} value={t.id}>{t.team_name} [{t.tag}] — {t.member_count} os.</option>
                     ))}
                   </select>
+                  {teamSizeError && (
+                    <p style={{ color: 'var(--gh-danger, #f87171)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                      ⚠️ {teamSizeError}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <>
                   <div className="wizard-field" style={{marginTop: '1rem'}}>
                     <label>Nazwa reprezentująca drużynę *</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.team_name}
                       onChange={e => setFormData({...formData, team_name: e.target.value})}
-                      placeholder="np. Niezwyciężeni Orłowie" 
+                      placeholder="np. Niezwyciężeni Orłowie"
                     />
                   </div>
 
                   <div className="wizard-field">
                     <label>Tag Drużyny (2-5 znaków) *</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.tag}
                       onChange={e => setFormData({...formData, tag: e.target.value.toUpperCase()})}
-                      placeholder="np. ORŁY" 
+                      placeholder="np. ORŁY"
                       maxLength={5}
                     />
                   </div>
                 </>
               )}
-
-              <div className="wizard-field">
-                <label>Tag Drużyny (2-5 znaków) *</label>
-                <input 
-                  type="text" 
-                  value={formData.tag}
-                  onChange={e => setFormData({...formData, tag: e.target.value.toUpperCase()})}
-                  placeholder="np. ORŁY" 
-                  maxLength={5}
-                />
-              </div>
 
               <div className="wizard-field">
                 <label>Avatar / Logo (Opcjonalnie)</label>
