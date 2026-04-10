@@ -4,13 +4,23 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { supabase } from '../lib/supabase'
 import WizardRegistrationModal from '../components/WizardRegistrationModal'
+import LoginModal from '../components/LoginModal'
 import { useParams } from 'react-router-dom'
 import '../components/button.css'
+import { useAuthGuard } from '../hooks/useAuthGuard.jsx'
 
 export default function TournamentDetailsPage({ tournamentId: propsTournamentId, onNavigate, user, onAuthChange }) {
   const { id } = useParams()
   const tournamentId = id || propsTournamentId;
-  
+
+  const { requireAuth, AuthModal } = useAuthGuard(user, onAuthChange)
+
+  // Auth gate — blokada strony dla niezalogowanych
+  const [showPageAuthGate, setShowPageAuthGate] = useState(!user)
+  useEffect(() => {
+    if (user) setShowPageAuthGate(false)
+  }, [user])
+
   // Stan turnieju
   const [tournament, setTournament] = useState(null)
   const [teams, setTeams] = useState([])
@@ -155,23 +165,20 @@ export default function TournamentDetailsPage({ tournamentId: propsTournamentId,
     setShowCreateTeam(false)
   }
 
-  const handleJoinTeam = async (teamId) => {
-    if (!user) {
-      alert("Musisz być zalogowany, aby dołączyć.")
-      return
-    }
+  const handleJoinTeam = (teamId) => {
+    requireAuth(async () => {
+      try {
+        const { error } = await supabase
+          .from('team_members')
+          .insert({ team_id: teamId, user_id: user.id, status: 'pending' })
 
-    try {
-      const { error } = await supabase
-        .from('team_members')
-        .insert({ team_id: teamId, user_id: user.id, status: 'pending' });
+        if (error) throw error
 
-      if (error) throw error;
-
-      alert('Wysłano prośbę do lidera drużyny! Oczekuj na akceptację.')
-    } catch (err) {
-      alert('Błąd podczas wysyłania prośby: ' + err.message)
-    }
+        alert('Wysłano prośbę do lidera drużyny! Oczekuj na akceptację.')
+      } catch (err) {
+        alert('Błąd podczas wysyłania prośby: ' + err.message)
+      }
+    })
   }
 
   const handleLeaderAction = async (reqId, action) => {
@@ -221,6 +228,21 @@ export default function TournamentDetailsPage({ tournamentId: propsTournamentId,
     <div className="gh-page">
       <Navbar onNavigate={onNavigate} currentView="project" user={user} onAuthChange={onAuthChange} />
 
+      {/* Auth gate — blokada dla niezalogowanych */}
+      {showPageAuthGate && (
+        <LoginModal
+          initialMode="register"
+          onClose={() => onNavigate('project')}
+          onSuccess={(session) => {
+            onAuthChange(session.user)
+            setShowPageAuthGate(false)
+          }}
+        />
+      )}
+
+      {/* Modal inline guard (dla akcji w środku strony) */}
+      {AuthModal}
+
       {/* Modal tworzenia drużyny */}
       {showCreateTeam && (
         <WizardRegistrationModal
@@ -241,7 +263,7 @@ export default function TournamentDetailsPage({ tournamentId: propsTournamentId,
           <h1 className="td-hero__title">{tournament?.title}</h1>
           <p className="td-hero__subtitle">{tournament?.description}</p>
           {!myTeam && (
-            <button className="gh-btn" onClick={() => setShowCreateTeam(true)}>
+            <button className="gh-btn" onClick={() => requireAuth(() => setShowCreateTeam(true))}>
               🛡️ Utwórz własną drużynę
             </button>
           )}
