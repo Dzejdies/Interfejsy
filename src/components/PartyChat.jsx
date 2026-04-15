@@ -47,8 +47,28 @@ export default function PartyChat({ team, user }) {
         schema: 'public',
         table: 'team_messages',
         filter: `team_id=eq.${team.id}`
-      }, () => {
-        fetchMessages()
+      }, (payload) => {
+        // fetchMessages()
+        const newMessage = payload.new
+        setMessages(prev => [...prev, newMessage])
+        // We check if we need to fetch the profile
+        setProfiles(prevProfiles => {
+          if (!prevProfiles[newMessage.user_id]) {
+            supabase
+              .from('profiles')
+              .select('id, nickname, avatar_url')
+              .eq('id', newMessage.user_id)
+              .single()
+              .then(({ data }) => {
+                if (data) {
+                  // Pass a callback to setProfiles inside the then block
+                  setProfiles(p => ({ ...p, [data.id]: data }))
+                }
+              })
+          }
+          // The critical part: Always return the current state synchronously here!
+          return prevProfiles
+        })
       })
       .subscribe()
 
