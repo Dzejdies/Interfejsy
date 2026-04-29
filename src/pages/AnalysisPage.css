@@ -182,6 +182,271 @@
   line-height: 1.5;
 }
 
+/* ════════════════════════════════════════════
+   Personas v2 — full visual cards
+   ════════════════════════════════════════════ */
+.personas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  /* Break out of .gh-main (max-width: 960px) — extend up to 1400px */
+  width: min(1400px, calc(100vw - 3rem));
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 1100px) {
+  .personas-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  .personas-grid { grid-template-columns: 1fr; }
+}
+
+.persona-v2 {
+  --accent: var(--gh-cyan);
+  --accent-soft: rgba(34, 211, 238, 0.12);
+  --accent-glow: rgba(34, 211, 238, 0.35);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.15));
+  border: 1px solid var(--gh-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.persona-v2::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  box-shadow: 0 0 14px var(--accent-glow);
+}
+
+.persona-v2--cyan   { --accent: var(--gh-cyan);      --accent-soft: rgba(34, 211, 238, 0.12); --accent-glow: rgba(34, 211, 238, 0.35); }
+.persona-v2--purple { --accent: var(--gh-purple-lt); --accent-soft: rgba(168, 85, 247, 0.14); --accent-glow: rgba(168, 85, 247, 0.4); }
+.persona-v2--green  { --accent: #4ade80;             --accent-soft: rgba(74, 222, 128, 0.13); --accent-glow: rgba(74, 222, 128, 0.35); }
+
+.persona-v2__header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.persona-v2__avatar {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+  background: var(--accent-soft);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 24px var(--accent-glow), inset 0 0 16px var(--accent-soft);
+}
+
+.persona-v2__heading { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+
+.persona-v2__tag {
+  font-family: 'Russo One', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.persona-v2__name {
+  font-family: 'Russo One', sans-serif;
+  font-size: 1.05rem;
+  color: var(--gh-title-c);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.persona-v2__role {
+  font-size: 0.8rem;
+  color: var(--gh-muted);
+  margin: 0;
+}
+
+.persona-v2__quote {
+  position: relative;
+  margin: 0;
+  padding: 0.75rem 1rem 0.75rem 2rem;
+  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--gh-text-c);
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+.persona-v2__quote-mark {
+  position: absolute;
+  left: 0.5rem;
+  top: -0.25rem;
+  font-family: 'Russo One', sans-serif;
+  font-size: 2rem;
+  color: var(--accent);
+  opacity: 0.6;
+  line-height: 1;
+}
+
+.persona-v2__block { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.persona-v2__block-title {
+  font-family: 'Russo One', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gh-muted);
+  margin: 0;
+}
+
+.persona-v2__demo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 0.75rem;
+}
+
+.persona-v2__demo-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 0.5rem;
+  row-gap: 0.05rem;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--gh-text-c);
+  min-width: 0;
+}
+
+.persona-v2__demo-icon {
+  grid-row: 1 / 3;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+.persona-v2__demo-label {
+  color: var(--gh-muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.persona-v2__demo-value {
+  color: var(--gh-title-c);
+  font-weight: 600;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.persona-v2__bars { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.persona-bar { display: flex; flex-direction: column; gap: 0.25rem; }
+
+.persona-bar__head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+}
+.persona-bar__label { color: var(--gh-text-c); }
+.persona-bar__value {
+  color: var(--accent);
+  font-family: 'Russo One', sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.persona-bar__track {
+  height: 6px;
+  background: var(--gh-border);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.persona-bar__fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent));
+  box-shadow: 0 0 8px var(--accent-glow);
+  transition: width 0.6s ease;
+}
+.persona-bar__fill--cyan   { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+.persona-bar__fill--purple { background: linear-gradient(90deg, #7c3aed, #a855f7); }
+.persona-bar__fill--green  { background: linear-gradient(90deg, #16a34a, #4ade80); }
+
+.persona-v2__pills { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+.persona-v2__pill {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.persona-v2__split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--gh-border);
+}
+
+@media (max-width: 480px) {
+  .persona-v2__split { grid-template-columns: 1fr; }
+  .persona-v2__demo { grid-template-columns: 1fr; }
+}
+
+.persona-v2__col { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.persona-v2__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.persona-v2__list li {
+  font-size: 0.78rem;
+  color: var(--gh-text-c);
+  line-height: 1.45;
+  padding-left: 0.85rem;
+  position: relative;
+}
+
+.persona-v2__col--goals li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: bold;
+}
+.persona-v2__col--pains li::before {
+  content: '✗';
+  position: absolute;
+  left: 0;
+  color: #f87171;
+  font-weight: bold;
+}
+
 /* Garrett levels */
 .garrett-levels {
   display: flex;
