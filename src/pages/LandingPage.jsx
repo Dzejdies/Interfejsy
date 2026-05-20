@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './LandingPage.css'
 import Navbar from '../components/Navbar'
-import { supabase } from '../lib/supabase'
 import Footer from '../components/Footer'
 
 
@@ -116,17 +115,6 @@ export default function LandingPage({ onNavigate, user, onAuthChange }) {
         'Gaming z misją. Turnieje dla dobra.',
         'Każda gra może zmienić czyjeś życie.',
     ])
-
-    useEffect(() => {
-        if (!supabase) return
-        supabase
-            .from('stats')
-            .select('value, label, sort_order')
-            .order('sort_order')
-            .then(({ data, error }) => {
-                if (!error && data && data.length > 0) setStats(data)
-            })
-    }, [])
 
     return (
         <div className="gh-page">

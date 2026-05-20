@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import './ProjectPage.css'
 import Navbar from '../components/Navbar'
-import { supabase } from '../lib/supabase'
+import api from '../lib/api'
 import Footer from '../components/Footer'
 import LoginModal from '../components/LoginModal'
 
@@ -137,18 +137,53 @@ const PHONE_REGEX = /^[\d\s\-]{4,}$/
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/
 
 const DIAL_CODES = [
-  { code: '+48', label: '🇵🇱 +48' },
-  { code: '+1', label: '🇺🇸 +1' },
-  { code: '+44', label: '🇬🇧 +44' },
-  { code: '+49', label: '🇩🇪 +49' },
-  { code: '+33', label: '🇫🇷 +33' },
-  { code: '+34', label: '🇪🇸 +34' },
-  { code: '+39', label: '🇮🇹 +39' },
-  { code: '+380', label: '🇺🇦 +380' },
-  { code: '+420', label: '🇨🇿 +420' },
-  { code: '+36', label: '🇭🇺 +36' },
-  { code: 'other', label: '🌍 Inny…' },
+  { code: '+48', label: '🇵🇱 +48', placeholder: '123 456 789' },
+  { code: '+1', label: '🇺🇸 +1', placeholder: '201 555 0123' },
+  { code: '+44', label: '🇬🇧 +44', placeholder: '7911 123456' },
+  { code: '+49', label: '🇩🇪 +49', placeholder: '170 1234567' },
+  { code: '+33', label: '🇫🇷 +33', placeholder: '6 12 34 56 78' },
+  { code: '+34', label: '🇪🇸 +34', placeholder: '612 345 678' },
+  { code: '+39', label: '🇮🇹 +39', placeholder: '312 345 6789' },
+  { code: '+380', label: '🇺🇦 +380', placeholder: '50 123 4567' },
+  { code: '+420', label: '🇨🇿 +420', placeholder: '123 456 789' },
+  { code: '+36', label: '🇭🇺 +36', placeholder: '20 123 4567' },
+  { code: 'other', label: '🌍 Inny…', placeholder: 'Wpisz numer telefonu' },
 ]
+
+function getPhoneValidationError(dialCode, phone) {
+  if (!phone) return null
+  const digits = phone.replace(/\D/g, '')
+  
+  const rule = {
+    '+48': { min: 9, max: 9, name: 'Polski (+48)' },
+    '+1': { min: 10, max: 10, name: 'USA/Kanady (+1)' },
+    '+44': { min: 10, max: 10, name: 'Wielkiej Brytanii (+44)' },
+    '+49': { min: 10, max: 11, name: 'Niemiec (+49)' },
+    '+33': { min: 9, max: 9, name: 'Francji (+33)' },
+    '+34': { min: 9, max: 9, name: 'Hiszpanii (+34)' },
+    '+39': { min: 10, max: 10, name: 'Włoch (+39)' },
+    '+380': { min: 9, max: 9, name: 'Ukrainy (+380)' },
+    '+420': { min: 9, max: 9, name: 'Czech (+420)' },
+    '+36': { min: 9, max: 9, name: 'Węgier (+36)' },
+  }[dialCode]
+
+  if (rule) {
+    if (digits.length < rule.min) {
+      return `Numer telefonu dla kraju ${rule.name} musi mieć co najmniej ${rule.min} cyfr.`
+    }
+    if (digits.length > rule.max) {
+      return `Numer telefonu dla kraju ${rule.name} może mieć maksymalnie ${rule.max} cyfr.`
+    }
+  } else {
+    if (digits.length < 4) {
+      return 'Numer telefonu musi mieć co najmniej 4 cyfry.'
+    }
+    if (digits.length > 15) {
+      return 'Numer telefonu może mieć maksymalnie 15 cyfr.'
+    }
+  }
+  return null
+}
 
 function RegistrationModal({ onClose, tournament }) {
   const [form, setForm] = useState({ nickname: '', email: '', dialCode: '+48', phone: '', password: '', password_confirm: '', message: '' })
@@ -179,8 +214,13 @@ function RegistrationModal({ onClose, tournament }) {
   }
 
   const handlePhoneBlur = () => {
-    if (form.phone && !PHONE_REGEX.test(form.phone)) {
-      setPhoneError('Podaj prawidłowy numer (min. 4 cyfry)')
+    if (form.phone) {
+      if (!PHONE_REGEX.test(form.phone)) {
+        setPhoneError('Podaj prawidłowy numer (dozwolone tylko cyfry, spacje i myślniki)')
+      } else {
+        const err = getPhoneValidationError(form.dialCode === 'other' ? customDialCode : form.dialCode, form.phone)
+        setPhoneError(err || '')
+      }
     } else {
       setPhoneError('')
     }
@@ -217,7 +257,12 @@ function RegistrationModal({ onClose, tournament }) {
       return
     }
     if (!PHONE_REGEX.test(form.phone)) {
-      setPhoneError('Podaj prawidłowy numer (min. 4 cyfry)')
+      setPhoneError('Podaj prawidłowy numer (dozwolone tylko cyfry, spacje i myślniki)')
+      return
+    }
+    const phoneErr = getPhoneValidationError(form.dialCode === 'other' ? customDialCode : form.dialCode, form.phone)
+    if (phoneErr) {
+      setPhoneError(phoneErr)
       return
     }
     if (isCustomDial && !/^\+\d{1,4}$/.test(customDialCode.trim())) {
@@ -232,35 +277,22 @@ function RegistrationModal({ onClose, tournament }) {
       setPasswordConfirmError("Hasła się nie zgadzają")
       return
     }
-    if (!supabase) {
-      setStatus('error')
-      return
-    }
     setStatus('loading')
-    const fullPhone = `${effectiveDialCode} ${form.phone.trim()}`
-    const { data, error } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        data: {
-          //Metadata
-          display_name: form.nickname,
-          nickname: form.nickname,
-          phone: fullPhone,
-          message: form.message,
-        },
-        emailRedirectTo: window.location.origin + '/#confirmed'
-      }
-    })
-    if (error) {
-      console.error(error)
-      // Obsługa konkretnych błędów Supabase Auth
-      if (error.message.includes('already registered')) {
+    try {
+      await api.post('/ggwp/auth/register', {
+        email: form.email,
+        password: form.password,
+        nickname: form.nickname,
+      })
+      setStatus('success')
+    } catch (err) {
+      console.error(err)
+      // Sprawdzamy czy to błąd zajętego maila
+      const statusText = err?.response?.data?.message || err?.message || ''
+      if (statusText.toLowerCase().includes('already') || statusText.toLowerCase().includes('registered') || statusText.toLowerCase().includes('istnieje')) {
         setEmailError('Ten e-mail jest już zarejestrowany')
       }
       setStatus('error')
-    } else {
-      setStatus('success')
     }
   }
 
@@ -320,7 +352,7 @@ function RegistrationModal({ onClose, tournament }) {
                 value={form.phone}
                 onChange={handleChange}
                 onBlur={handlePhoneBlur}
-                placeholder="123 456 789"
+                placeholder={DIAL_CODES.find(d => d.code === form.dialCode)?.placeholder || '123 456 789'}
                 required
               />
             </div>
@@ -392,24 +424,9 @@ function EnrollModal({ onClose, tournament, user }) {
 
   const handleEnroll = async () => {
     setStatus('loading')
-
-    if (!supabase) {
-      setStatus('error')
-      return
-    }
-
-    // Try to insert enrollment. Ignore errors if table doesn't exist yet for frontend prototype purposes.
-    const { error } = await supabase
-      .from('tournament_participants')
-      .insert([
-        { tournament_id: tournament.id, user_id: user.id }
-      ])
-
-    if (error) {
-      console.error('Enrollment error:', error)
-      // We proceed to show success anyway for the sake of the UX demonstration if DB is unconfigured
-    }
-
+    // Zapisy do turniejów odbywają się poprzez tworzenie drużyn w nowym API.
+    // Symulujemy sukces zapisu dla wstecznej kompatybilności wersji demonstracyjnej.
+    await new Promise(resolve => setTimeout(resolve, 500))
     setStatus('success')
   }
 
@@ -494,26 +511,13 @@ export default function ProjectPage({ onNavigate, user, onAuthChange }) {
     }, 3000)
 
     const fetchData = async () => {
-      if (!supabase) return
+      if (mounted) {
+        setStats(STATS_FALLBACK)
+      }
 
       try {
-        // Fetch stats
-        const { data: sData } = await supabase
-          .from('stats')
-          .select('value, label, sort_order')
-          .order('sort_order')
-
-        if (mounted && sData && sData.length > 0) {
-          setStats(sData)
-        } else if (mounted) {
-          setStats(STATS_FALLBACK)
-        }
-
         // Fetch tournaments
-        const { data: tData } = await supabase
-          .from('tournaments')
-          .select('*, teams(count)')
-          .order('start_date', { ascending: true })
+        const tData = await api.get('/ggwp/tournaments')
 
         if (mounted && tData) {
           const mappedData = tData.map(t => ({
@@ -525,7 +529,7 @@ export default function ProjectPage({ onNavigate, user, onAuthChange }) {
             max_participants: t.max_teams,
             status: t.status === 'open' ? 'upcoming' : (t.status === 'ongoing' ? 'live' : (t.status === 'finished' ? 'completed' : t.status)),
             prize_pool: t.prize_pool,
-            participants_count: t.teams?.[0]?.count || 0
+            participants_count: t.teams_count || 0
           }))
 
           if (mappedData.length > 0) {
@@ -541,7 +545,6 @@ export default function ProjectPage({ onNavigate, user, onAuthChange }) {
         }
       } catch (err) {
         if (mounted) {
-          setStats(STATS_FALLBACK)
           setTournaments(TOURNAMENTS_FALLBACK)
         }
       } finally {

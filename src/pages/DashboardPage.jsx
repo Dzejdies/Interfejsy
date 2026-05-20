@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import api from '../lib/api'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import './DashboardPage.css'
@@ -24,88 +24,77 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
     let mounted = true
 
     const fetchDashboardData = async () => {
-      // 1. Zapisane turnieje (solowo)
-      const { data: participants } = await supabase
-        .from('tournament_participants')
-        .select(`
-          tournament_id,
-          tournaments(id, name, game, start_date)
-        `)
-        .eq('user_id', user.id)
+      try {
+        // Fetch teams, tournaments and notifications in parallel
+        const [teamsData, tData, notifs] = await Promise.all([
+          api.get('/ggwp/teams/mine').catch(() => []),
+          api.get('/ggwp/tournaments').catch(() => []),
+          api.get('/ggwp/notifications').catch(() => []),
+        ])
 
-      // 2. Aktywna Drużyna / Turnieje (drużynowo)
-      const { data: teamsData } = await supabase
-        .from('teams')
-        .select(`
-          id, team_name, tag, avatar_url, leader_id, tournament_id,
-          tournaments(id, name, game, start_date),
-          team_members!inner (user_id, status),
-          members:team_members (
-            id, status, user_id,
-            profile:profiles (nickname, avatar_url)
-          )
-        `)
-        .eq('team_members.user_id', user.id)
-        .eq('team_members.status', 'accepted')
-
-      // Zbieramy wszystkie unikalne turnieje (Solo + Team)
-      let allUpcoming = [];
-      if (Array.isArray(participants)) {
-        allUpcoming = [...allUpcoming, ...participants.map(p => p.tournaments).filter(t => t)];
-      }
-      if (Array.isArray(teamsData)) {
-        allUpcoming = [...allUpcoming, ...teamsData.map(t => t.tournaments).filter(t => t)];
-      }
-
-      // Filtrujemy null'e, duplikaty (po id) i turnieje przeszłe
-      const uniqueUpcoming = Array.from(new Map(
-        allUpcoming
-          .filter(t => t && t.start_date && new Date(t.start_date) > new Date())
-          .map(item => [item.id, item])
-      ).values());
-
-      let enrolledCount = (Array.isArray(participants) ? participants.length : 0) + (Array.isArray(teamsData) ? teamsData.filter(t => t.tournament_id).length : 0);
-
-      if (mounted) {
-        setStats(prev => ({
-          ...prev,
-          tournamentsEnrolled: enrolledCount,
-          level: Math.floor(enrolledCount / 3) + 1,
-          ggwpPoints: user?.user_metadata?.ggwp_points || (enrolledCount * 250)
-        }))
-
-        if (Array.isArray(teamsData) && teamsData.length > 0) {
-          setMyTeam(teamsData[0]); // Pokaż pierwszą drużynę w jakiej gracz jest
+        // Build all upcoming tournaments for teams the user is in
+        let allUpcoming = [];
+        if (Array.isArray(teamsData) && Array.isArray(tData)) {
+          teamsData.forEach(t => {
+            if (t.tournament_id) {
+              const matchingTournament = tData.find(x => x.id === t.tournament_id);
+              if (matchingTournament) {
+                // Ensure field names are consistent
+                allUpcoming.push({
+                  id: matchingTournament.id,
+                  name: matchingTournament.name,
+                  game: matchingTournament.game,
+                  start_date: matchingTournament.start_date,
+                });
+              }
+            }
+          });
         }
 
-        if (uniqueUpcoming.length > 0) {
-          uniqueUpcoming.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-          setNextTournament(uniqueUpcoming[0]);
+        // Filtrujemy null'e, duplikaty (po id) i turnieje przeszłe
+        const uniqueUpcoming = Array.from(new Map(
+          allUpcoming
+            .filter(t => t && t.start_date && new Date(t.start_date) > new Date())
+            .map(item => [item.id, item])
+        ).values());
+
+        let enrolledCount = Array.isArray(teamsData) ? teamsData.filter(t => t.tournament_id).length : 0;
+
+        if (mounted) {
+          setStats(prev => ({
+            ...prev,
+            tournamentsEnrolled: enrolledCount,
+            level: Math.floor(enrolledCount / 3) + 1,
+            ggwpPoints: user?.user_metadata?.ggwp_points || (enrolledCount * 250)
+          }))
+
+          if (Array.isArray(teamsData) && teamsData.length > 0) {
+            setMyTeam(teamsData[0]); // Pokaż pierwszą drużynę w jakiej gracz jest
+          }
+
+          if (uniqueUpcoming.length > 0) {
+            uniqueUpcoming.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+            setNextTournament(uniqueUpcoming[0]);
+          }
         }
-      }
 
-      // 3. Aktywność profilu z powiadomień
-      const { data: notifs } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(4)
+        if (mounted && Array.isArray(notifs)) {
+          const mappedFeed = notifs.map(n => ({
+            id: n.id,
+            icon: n.title.includes('Zaproszenie') || n.title.includes('Drużyny') ? '📩' : (n.title.includes('Liderem') ? '👑' : '🔔'),
+            text: n.message,
+            time: new Date(n.created_at).toLocaleDateString(),
+            type: n.type
+          }))
 
-      if (mounted && Array.isArray(notifs)) {
-        const mappedFeed = notifs.map(n => ({
-          id: n.id,
-          icon: n.title.includes('Zaproszenie') || n.title.includes('Drużyny') ? '📩' : (n.title.includes('Liderem') ? '👑' : '🔔'),
-          text: n.message,
-          time: new Date(n.created_at).toLocaleDateString(),
-          type: n.type // <-- PRZEKAZANIE TYPU Z BAZY DANYCH
-        }))
-
-        // Dorzucamy jedno statyczne globalne, jeśli nie ma bazy feedu
-        setFeed([
-          ...mappedFeed,
-          { id: 'global', icon: '🏆', text: 'Sprawdź zakładkę turniejów, by zobaczyć nowe rozgrywki!', time: 'System' }
-        ].slice(0, 4))
+          // Dorzucamy jedno statyczne globalne, jeśli nie ma bazy feedu
+          setFeed([
+            ...mappedFeed,
+            { id: 'global', icon: '🏆', text: 'Sprawdź zakładkę turniejów, by zobaczyć nowe rozgrywki!', time: 'System' }
+          ].slice(0, 4))
+        }
+      } catch (err) {
+        console.error('Błąd pobierania danych dashboardu:', err)
       }
     }
 
@@ -215,13 +204,13 @@ export default function DashboardPage({ onNavigate, user, onAuthChange }) {
                       {myTeam.members?.filter(m => m.status === 'accepted').map(m => (
                         <div
                           key={m.user_id}
-                          title={m.profile?.nickname}
+                          title={m.nickname}
                           className={`team-member-avatar ${m.user_id === myTeam.leader_id ? 'leader' : ''}`}
                         >
-                          {m.profile?.avatar_url ? (
-                            <img src={m.profile.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                          {m.avatar_url ? (
+                            <img src={m.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                           ) : (
-                            (m.profile?.nickname || 'U')[0].toUpperCase()
+                            (m.nickname || 'U')[0].toUpperCase()
                           )}
                         </div>
                       ))}

@@ -10,18 +10,53 @@ const PHONE_REGEX = /^[\d\s\-]{4,}$/
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/
 
 const DIAL_CODES = [
-  { code: '+48', label: '🇵🇱 +48' },
-  { code: '+1', label: '🇺🇸 +1' },
-  { code: '+44', label: '🇬🇧 +44' },
-  { code: '+49', label: '🇩🇪 +49' },
-  { code: '+33', label: '🇫🇷 +33' },
-  { code: '+34', label: '🇪🇸 +34' },
-  { code: '+39', label: '🇮🇹 +39' },
-  { code: '+380', label: '🇺🇦 +380' },
-  { code: '+420', label: '🇨🇿 +420' },
-  { code: '+36', label: '🇭🇺 +36' },
-  { code: 'other', label: '🌍 Inny…' },
+  { code: '+48', label: '🇵🇱 +48', placeholder: '123 456 789' },
+  { code: '+1', label: '🇺🇸 +1', placeholder: '201 555 0123' },
+  { code: '+44', label: '🇬🇧 +44', placeholder: '7911 123456' },
+  { code: '+49', label: '🇩🇪 +49', placeholder: '170 1234567' },
+  { code: '+33', label: '🇫🇷 +33', placeholder: '6 12 34 56 78' },
+  { code: '+34', label: '🇪🇸 +34', placeholder: '612 345 678' },
+  { code: '+39', label: '🇮🇹 +39', placeholder: '312 345 6789' },
+  { code: '+380', label: '🇺🇦 +380', placeholder: '50 123 4567' },
+  { code: '+420', label: '🇨🇿 +420', placeholder: '123 456 789' },
+  { code: '+36', label: '🇭🇺 +36', placeholder: '20 123 4567' },
+  { code: 'other', label: '🌍 Inny…', placeholder: 'Wpisz numer telefonu' },
 ]
+
+function getPhoneValidationError(dialCode, phone) {
+  if (!phone) return null
+  const digits = phone.replace(/\D/g, '')
+  
+  const rule = {
+    '+48': { min: 9, max: 9, name: 'Polski (+48)' },
+    '+1': { min: 10, max: 10, name: 'USA/Kanady (+1)' },
+    '+44': { min: 10, max: 10, name: 'Wielkiej Brytanii (+44)' },
+    '+49': { min: 10, max: 11, name: 'Niemiec (+49)' },
+    '+33': { min: 9, max: 9, name: 'Francji (+33)' },
+    '+34': { min: 9, max: 9, name: 'Hiszpanii (+34)' },
+    '+39': { min: 10, max: 10, name: 'Włoch (+39)' },
+    '+380': { min: 9, max: 9, name: 'Ukrainy (+380)' },
+    '+420': { min: 9, max: 9, name: 'Czech (+420)' },
+    '+36': { min: 9, max: 9, name: 'Węgier (+36)' },
+  }[dialCode]
+
+  if (rule) {
+    if (digits.length < rule.min) {
+      return `Numer telefonu dla kraju ${rule.name} musi mieć co najmniej ${rule.min} cyfr.`
+    }
+    if (digits.length > rule.max) {
+      return `Numer telefonu dla kraju ${rule.name} może mieć maksymalnie ${rule.max} cyfr.`
+    }
+  } else {
+    if (digits.length < 4) {
+      return 'Numer telefonu musi mieć co najmniej 4 cyfry.'
+    }
+    if (digits.length > 15) {
+      return 'Numer telefonu może mieć maksymalnie 15 cyfr.'
+    }
+  }
+  return null
+}
 
 export default function LoginModal({ onClose, onSuccess, initialMode = 'login' }) {
   const [mode, setMode] = useState(initialMode) // 'login' | 'reset' | 'register'
@@ -111,8 +146,13 @@ export default function LoginModal({ onClose, onSuccess, initialMode = 'login' }
   }
 
   const handlePhoneBlur = () => {
-    if (regForm.phone && !PHONE_REGEX.test(regForm.phone)) {
-      setPhoneError('Podaj prawidłowy numer (min. 4 cyfry)')
+    if (regForm.phone) {
+      if (!PHONE_REGEX.test(regForm.phone)) {
+        setPhoneError('Podaj prawidłowy numer (dozwolone tylko cyfry, spacje i myślniki)')
+      } else {
+        const err = getPhoneValidationError(regForm.dialCode === 'other' ? customDialCode : regForm.dialCode, regForm.phone)
+        setPhoneError(err || '')
+      }
     } else {
       setPhoneError('')
     }
@@ -145,7 +185,9 @@ export default function LoginModal({ onClose, onSuccess, initialMode = 'login' }
   const handleRegister = async (e) => {
     e.preventDefault()
     if (!EMAIL_REGEX.test(regForm.email)) { setEmailError('Podaj prawidłowy adres e-mail'); return }
-    if (!PHONE_REGEX.test(regForm.phone)) { setPhoneError('Podaj prawidłowy numer (min. 4 cyfry)'); return }
+    if (!PHONE_REGEX.test(regForm.phone)) { setPhoneError('Podaj prawidłowy numer (dozwolone tylko cyfry, spacje i myślniki)'); return }
+    const phoneErr = getPhoneValidationError(regForm.dialCode === 'other' ? customDialCode : regForm.dialCode, regForm.phone)
+    if (phoneErr) { setPhoneError(phoneErr); return }
     if (isCustomDial && !/^\+\d{1,4}$/.test(customDialCode.trim())) { setCustomDialError('Format: +XX lub +XXX (np. +351)'); return }
     if (!PASSWORD_REGEX.test(regForm.password)) { setPasswordError('Hasło musi zawierać co najmniej 8 znaków, w tym jedną małą i dużą literę oraz cyfrę'); return }
     if (regForm.password !== regForm.password_confirm) { setPasswordConfirmError('Hasła się nie zgadzają'); return }
@@ -296,7 +338,7 @@ export default function LoginModal({ onClose, onSuccess, initialMode = 'login' }
                   value={regForm.phone}
                   onChange={handleRegChange}
                   onBlur={handlePhoneBlur}
-                  placeholder="123 456 789"
+                  placeholder={DIAL_CODES.find(d => d.code === regForm.dialCode)?.placeholder || '123 456 789'}
                   required
                 />
               </div>
