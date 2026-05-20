@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './ProjectPage.css' // Używamy wspóldzielonych stylów kart turniejów
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { supabase } from '../lib/supabase'
+import api from '../lib/api'
 import '../components/button.css'
 
 const TOURNAMENTS_FALLBACK = [
@@ -78,13 +78,8 @@ export default function TournamentsListPage({ onNavigate, user, onAuthChange }) 
     }, 3000)
 
     const fetchData = async () => {
-      if (!supabase) return
-
       try {
-        const { data: tData } = await supabase
-          .from('tournaments')
-          .select('*, teams(count)')
-          .order('start_date', { ascending: true })
+        const tData = await api.get('/ggwp/tournaments')
 
         if (mounted && tData) {
           const mappedData = tData.map(t => ({
@@ -96,7 +91,7 @@ export default function TournamentsListPage({ onNavigate, user, onAuthChange }) 
             max_participants: t.max_teams,
             status: t.status === 'open' ? 'upcoming' : (t.status === 'ongoing' ? 'live' : (t.status === 'finished' ? 'completed' : t.status)),
             prize_pool: t.prize_pool,
-            participants_count: t.teams?.[0]?.count || 0
+            participants_count: t.teams_count || 0
           }))
 
           if (mappedData.length > 0) {
