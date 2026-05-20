@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import '../gaming-home.css'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { supabase } from '../lib/supabase'
 
 const TEAM = [
   {
@@ -108,18 +107,6 @@ function GamingTeamMember({ name, role, description, index = 0 }) {
 
 export default function AboutPage({ onNavigate, user, onAuthChange, initialTabData }) {
   const [team, setTeam] = useState(TEAM)
-
-  useEffect(() => {
-    // Fetch team members from DB
-    if (!supabase) return;
-    supabase
-      .from('website_team')
-      .select('name, role, description, sort_order')
-      .order('sort_order')
-      .then(({ data, error }) => {
-        if (!error && data && data.length > 0) setTeam(data)
-      })
-  }, [])
 
   return (
     <div className="gh-page">
