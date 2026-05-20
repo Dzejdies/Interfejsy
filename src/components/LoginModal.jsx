@@ -8,6 +8,7 @@ const BASE_URL = import.meta.env.VITE_API_URL
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const PHONE_REGEX = /^[\d\s\-]{4,}$/
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/
+const NICKNAME_REGEX = /^[a-zA-Z0-9_-]+$/
 
 const DIAL_CODES = [
   { code: '+48', label: '🇵🇱 +48', placeholder: '123 456 789' },
@@ -82,6 +83,7 @@ export default function LoginModal({ onClose, onSuccess, initialMode = 'login' }
   const [phoneError, setPhoneError] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [passwordConfirmError, setPasswordConfirmError] = useState('')
+  const [nicknameError, setNicknameError] = useState('')
   const [regStatus, setRegStatus] = useState('idle') // idle | loading | success | error
   const [regError, setRegError] = useState('')
 
@@ -130,6 +132,7 @@ export default function LoginModal({ onClose, onSuccess, initialMode = 'login' }
   const handleRegChange = (e) => {
     const { name, value } = e.target
     setRegForm(prev => ({ ...prev, [name]: value }))
+    if (name === 'nickname') setNicknameError('')
     if (name === 'email') setEmailError('')
     if (name === 'phone') setPhoneError('')
     if (name === 'password') setPasswordError('')
@@ -184,13 +187,59 @@ export default function LoginModal({ onClose, onSuccess, initialMode = 'login' }
 
   const handleRegister = async (e) => {
     e.preventDefault()
-    if (!EMAIL_REGEX.test(regForm.email)) { setEmailError('Podaj prawidłowy adres e-mail'); return }
-    if (!PHONE_REGEX.test(regForm.phone)) { setPhoneError('Podaj prawidłowy numer (dozwolone tylko cyfry, spacje i myślniki)'); return }
-    const phoneErr = getPhoneValidationError(regForm.dialCode === 'other' ? customDialCode : regForm.dialCode, regForm.phone)
-    if (phoneErr) { setPhoneError(phoneErr); return }
-    if (isCustomDial && !/^\+\d{1,4}$/.test(customDialCode.trim())) { setCustomDialError('Format: +XX lub +XXX (np. +351)'); return }
-    if (!PASSWORD_REGEX.test(regForm.password)) { setPasswordError('Hasło musi zawierać co najmniej 8 znaków, w tym jedną małą i dużą literę oraz cyfrę'); return }
-    if (regForm.password !== regForm.password_confirm) { setPasswordConfirmError('Hasła się nie zgadzają'); return }
+
+    // Validate all fields at once so user sees every issue
+    let hasError = false
+
+    if (!regForm.nickname.trim() || regForm.nickname.trim().length < 3) {
+      setNicknameError('Nick musi mieć co najmniej 3 znaki.')
+      hasError = true
+    } else if (regForm.nickname.trim().length > 50) {
+      setNicknameError('Nick może mieć maksymalnie 50 znaków.')
+      hasError = true
+    } else if (!NICKNAME_REGEX.test(regForm.nickname.trim())) {
+      setNicknameError('Nick może zawierać tylko litery, cyfry, podkreślnik (_) i myślnik (-).')
+      hasError = true
+    }
+
+    if (!EMAIL_REGEX.test(regForm.email)) {
+      setEmailError('Podaj prawidłowy adres e-mail')
+      hasError = true
+    }
+
+    if (!regForm.phone.trim()) {
+      setPhoneError('Numer telefonu jest wymagany.')
+      hasError = true
+    } else if (!PHONE_REGEX.test(regForm.phone)) {
+      setPhoneError('Podaj prawidłowy numer (dozwolone tylko cyfry, spacje i myślniki)')
+      hasError = true
+    } else {
+      const phoneErr = getPhoneValidationError(regForm.dialCode === 'other' ? customDialCode : regForm.dialCode, regForm.phone)
+      if (phoneErr) {
+        setPhoneError(phoneErr)
+        hasError = true
+      }
+    }
+
+    if (isCustomDial && !/^\+\d{1,4}$/.test(customDialCode.trim())) {
+      setCustomDialError('Format: +XX lub +XXX (np. +351)')
+      hasError = true
+    }
+
+    if (!regForm.password) {
+      setPasswordError('Hasło jest wymagane.')
+      hasError = true
+    } else if (!PASSWORD_REGEX.test(regForm.password)) {
+      setPasswordError('Hasło musi zawierać co najmniej 8 znaków, w tym jedną małą i dużą literę oraz cyfrę')
+      hasError = true
+    }
+
+    if (regForm.password !== regForm.password_confirm) {
+      setPasswordConfirmError('Hasła się nie zgadzają')
+      hasError = true
+    }
+
+    if (hasError) return
 
     setRegStatus('loading')
     const fullPhone = `${effectiveDialCode} ${regForm.phone.trim()}`
@@ -202,7 +251,7 @@ export default function LoginModal({ onClose, onSuccess, initialMode = 'login' }
         body: JSON.stringify({
           email: regForm.email,
           password: regForm.password,
-          nickname: regForm.nickname,
+          nickname: regForm.nickname.trim(),
           phone: fullPhone,
         }),
       })
@@ -210,10 +259,24 @@ export default function LoginModal({ onClose, onSuccess, initialMode = 'login' }
         const data = await res.json()
         if (res.status === 429) {
           setRegError('Zbyt wiele prób rejestracji. Spróbuj ponownie za godzinę.')
-        } else if (res.status === 422) {
-          setRegError(data?.error || 'Nieprawidłowe dane. Sprawdź formularz.')
+        } else if (res.status === 422 || res.status === 400) {
+          // Show specific validation issues from the server if available
+          if (data?.issues && Array.isArray(data.issues)) {
+            const msgs = data.issues.map(i => {
+              const field = i.path?.[0]
+              if (field === 'nickname') return 'Nick: ' + i.message
+              if (field === 'email') return 'E-mail: ' + i.message
+              if (field === 'password') return 'Hasło: ' + i.message
+              return i.message
+            })
+            setRegError(msgs.join(' | '))
+          } else {
+            setRegError(data?.error || 'Nieprawidłowe dane. Sprawdź formularz.')
+          }
+        } else if (res.status === 409) {
+          setRegError('Konto z tym adresem e-mail lub nickiem już istnieje.')
         } else {
-          setRegError('Coś poszło nie tak. Spróbuj ponownie.')
+          setRegError(data?.error || 'Coś poszło nie tak. Spróbuj ponownie.')
         }
         setRegStatus('error')
         return
@@ -298,13 +361,27 @@ export default function LoginModal({ onClose, onSuccess, initialMode = 'login' }
             <form className="modal__form" onSubmit={handleRegister}>
               <label className="modal__label">Nick / imię</label>
               <input
-                className="modal__input"
+                className={`modal__input${nicknameError ? ' modal__input--error' : regForm.nickname.trim().length >= 3 ? ' modal__input--valid' : ''}`}
                 name="nickname"
                 value={regForm.nickname}
                 onChange={handleRegChange}
+                onBlur={() => {
+                  const n = regForm.nickname.trim()
+                  if (n.length > 0 && n.length < 3) {
+                    setNicknameError('Nick musi mieć co najmniej 3 znaki.')
+                  } else if (n.length > 50) {
+                    setNicknameError('Nick może mieć maksymalnie 50 znaków.')
+                  } else if (n.length > 0 && !NICKNAME_REGEX.test(n)) {
+                    setNicknameError('Nick może zawierać tylko litery, cyfry, podkreślnik (_) i myślnik (-).')
+                  } else {
+                    setNicknameError('')
+                  }
+                }}
                 placeholder="np. xShadowHunter"
+                maxLength={50}
                 required
               />
+              {nicknameError && <p className="modal__field-error">⚠ {nicknameError}</p>}
 
               <label className="modal__label">E-mail</label>
               <input
@@ -385,7 +462,15 @@ export default function LoginModal({ onClose, onSuccess, initialMode = 'login' }
               <button
                 className="gh-btn login-modal__submit"
                 type="submit"
-                disabled={regStatus === 'loading'}
+                disabled={
+                  regStatus === 'loading' ||
+                  !regForm.nickname.trim() ||
+                  !regForm.email.trim() ||
+                  !regForm.phone.trim() ||
+                  !regForm.password ||
+                  !regForm.password_confirm ||
+                  (isCustomDial && !customDialCode.trim())
+                }
               >
                 {regStatus === 'loading' ? 'Tworzenie konta…' : '🎮 Utwórz konto'}
               </button>

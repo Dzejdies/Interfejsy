@@ -1,6 +1,7 @@
 node_modules
 .claude
 CLAUDE.md
+.idea
 
 # Env files — NEVER commit secrets!
 .env

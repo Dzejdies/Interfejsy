@@ -114,6 +114,9 @@ export default function AccountPage({ onNavigate, user, onAuthChange, initialTab
   const [searching, setSearching] = useState(false)
   const [teamsLoading, setTeamsLoading] = useState(false)
   const [openChatTeamId, setOpenChatTeamId] = useState(null)
+  const [teamAvatarUploading, setTeamAvatarUploading] = useState(null) // team id being uploaded
+  const teamFileInputRef = useRef(null)
+  const [pendingTeamId, setPendingTeamId] = useState(null)
 
   // Create Team state
   const [newTeamName, setNewTeamName] = useState('')
@@ -254,6 +257,67 @@ export default function AccountPage({ onNavigate, user, onAuthChange, initialTab
       fetchTeamsData()
     } catch {
       showToast('Błąd tworzenia drużyny.', 'error')
+    }
+  }
+
+  // ── Team Avatar upload ──
+  const handleTeamAvatarClick = (teamId) => {
+    setPendingTeamId(teamId)
+    teamFileInputRef.current?.click()
+  }
+
+  const handleTeamAvatarUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !pendingTeamId) return
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      showToast('Wybierz plik JPG, PNG lub WebP', 'error')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Plik jest zbyt duży. Maksymalny rozmiar to 2 MB.', 'error')
+      return
+    }
+
+    setTeamAvatarUploading(pendingTeamId)
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    try {
+      const res = await fetch(`${BASE_URL}/ggwp/teams/${pendingTeamId}/avatar`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + getAccessToken() },
+        credentials: 'include',
+        body: formData,
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        showToast('Błąd przesyłania: ' + (err.error || 'Nieznany błąd'), 'error')
+        return
+      }
+      showToast('Avatar drużyny zaktualizowany!')
+      fetchTeamsData()
+    } catch {
+      showToast('Błąd połączenia', 'error')
+    } finally {
+      setTeamAvatarUploading(null)
+      setPendingTeamId(null)
+      if (teamFileInputRef.current) teamFileInputRef.current.value = ''
+    }
+  }
+
+  const handleRemoveTeamAvatar = async (teamId) => {
+    if (!confirm('Usunąć avatar drużyny?')) return
+    setTeamAvatarUploading(teamId)
+    try {
+      await api.delete(`/ggwp/teams/${teamId}/avatar`)
+      showToast('Avatar drużyny usunięty.')
+      fetchTeamsData()
+    } catch {
+      showToast('Błąd przy usuwaniu avatara.', 'error')
+    } finally {
+      setTeamAvatarUploading(null)
     }
   }
 
@@ -694,6 +758,15 @@ export default function AccountPage({ onNavigate, user, onAuthChange, initialTab
               </section>
             )}
 
+            {/* Hidden file input for team avatar uploads */}
+            <input
+              type="file"
+              ref={teamFileInputRef}
+              accept="image/jpeg,image/png,image/webp"
+              style={{ display: 'none' }}
+              onChange={handleTeamAvatarUpload}
+            />
+
             {/* ── My Teams List ── */}
             <section className="account-section">
               <h2 className="account-section__title">🏆 Twoje składy</h2>
@@ -706,14 +779,38 @@ export default function AccountPage({ onNavigate, user, onAuthChange, initialTab
                   {myTeams.map(t => (
                     <div key={t.id} className="team-item">
                       <div className="team-item__main">
-                        <div className="team-item__avatar">
-                          {t.avatar_url ? <img src={t.avatar_url} alt="" /> : <span>{t.tag}</span>}
+                        <div
+                          className={`team-item__avatar ${t.leader_id === user.id ? 'team-item__avatar--editable' : ''}`}
+                          onClick={() => t.leader_id === user.id && handleTeamAvatarClick(t.id)}
+                          title={t.leader_id === user.id ? 'Kliknij, aby zmienić avatar drużyny' : ''}
+                        >
+                          {teamAvatarUploading === t.id ? (
+                            <span className="team-avatar-spinner">⏳</span>
+                          ) : t.avatar_url ? (
+                            <img src={t.avatar_url} alt="" />
+                          ) : (
+                            <span>{t.tag}</span>
+                          )}
+                          {t.leader_id === user.id && (
+                            <div className="team-item__avatar-overlay">📷</div>
+                          )}
                         </div>
                         <div className="team-item__info">
                           <h3>{t.team_name} <span className="team-tag">[{t.tag}]</span></h3>
-                          <span className="team-role-badge">
-                            {t.leader_id === user.id ? '👑 Lider' : '🎯 Członek'}
-                          </span>
+                          <div className="team-item__badges">
+                            <span className="team-role-badge">
+                              {t.leader_id === user.id ? '👑 Lider' : '🎯 Członek'}
+                            </span>
+                            {t.leader_id === user.id && t.avatar_url && (
+                              <button
+                                className="team-avatar-remove-btn"
+                                onClick={(e) => { e.stopPropagation(); handleRemoveTeamAvatar(t.id) }}
+                                title="Usuń avatar drużyny"
+                              >
+                                🗑️ Usuń avatar
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
 
